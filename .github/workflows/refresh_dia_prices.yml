@@ -1,0 +1,38 @@
+name: Refrescar precios de Dia
+
+# Aislado del refresco de Mercadona y de la API en sí — cada fuente tiene su
+# propia fragilidad y no deben poder tumbarse entre sí (ver docs/DECISIONS.md,
+# "Arquitectura para escalar").
+#
+# Sin disparador `schedule` todavía, a propósito: a diferencia de Mercadona
+# (API propia, sin protección detectada), dia.es está detrás de Akamai —
+# antes de dejarlo desatendido a diario conviene que alguien lo revise
+# funcionando unas cuantas veces a mano ("Run workflow" en Actions).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Aplicar migraciones
+        working-directory: backend
+        env:
+          MERCACHOLLO_DATABASE_URL: ${{ secrets.MERCACHOLLO_DATABASE_URL }}
+        run: alembic upgrade head
+
+      - name: Refrescar catálogo de Dia
+        working-directory: backend
+        env:
+          MERCACHOLLO_DATABASE_URL: ${{ secrets.MERCACHOLLO_DATABASE_URL }}
+        run: python -m app.workers.refresh_dia_prices

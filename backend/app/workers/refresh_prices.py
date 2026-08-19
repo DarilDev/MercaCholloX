@@ -10,40 +10,10 @@ import argparse
 import random
 import time
 
-from sqlalchemy.orm import Session
-
 from app.db import SessionLocal
-from app.models import Price, Product, utcnow
+from app.models import Price
 from app.services import mercadona_client as mc
-
-
-def upsert_product(db: Session, item: mc.MercadonaProduct) -> Product:
-    product = (
-        db.query(Product)
-        .filter(Product.chain == "mercadona", Product.external_id == item.external_id)
-        .first()
-    )
-    if product is None:
-        product = Product(
-            chain="mercadona",
-            external_id=item.external_id,
-            name=item.name,
-            top_category=item.top_category,
-            category=item.category,
-            unit=item.unit,
-            image_url=item.image_url,
-        )
-        db.add(product)
-        db.flush()
-    else:
-        product.name = item.name
-        product.top_category = item.top_category
-        product.category = item.category
-        product.unit = item.unit
-        product.image_url = item.image_url
-    product.current_price = item.price
-    product.current_price_captured_at = utcnow()
-    return product
+from app.workers.common import upsert_product
 
 
 def refresh(wh: str | None = None, limit: int | None = None) -> int:
@@ -67,7 +37,7 @@ def refresh(wh: str | None = None, limit: int | None = None) -> int:
                 continue
 
             for item in products:
-                product = upsert_product(db, item)
+                product = upsert_product(db, "mercadona", item)
                 db.add(Price(product_id=product.id, store_id=None, price=item.price))
                 count += 1
 
