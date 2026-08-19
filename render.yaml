@@ -1,0 +1,11 @@
+services:
+  - name: mercachollo-api
+    type: web
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && alembic upgrade head"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: MERCACHOLLO_DATABASE_URL
+        sync: false
