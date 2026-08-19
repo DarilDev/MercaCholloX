@@ -60,10 +60,10 @@ def refresh(wh: str | None = None, limit: int | None = None) -> int:
             except mc.MercadonaBlockedError:
                 # Nos han limitado/bloqueado: seguir insistiendo es lo peor que se
                 # puede hacer (ver docstring del cliente) — parar el run entero.
-                print(f"  !! BLOQUEADO por Mercadona en categoría {category_id} — abortando el refresco.")
+                print(f"  !! BLOQUEADO por Mercadona en categoría {category_id} — abortando el refresco.", flush=True)
                 raise
             except Exception as exc:  # fallo puntual de una categoría, no de toda la fuente
-                print(f"  ! error en categoría {category_id} ({category_name}): {exc}")
+                print(f"  ! error en categoría {category_id} ({category_name}): {exc}", flush=True)
                 continue
 
             for item in products:
@@ -72,7 +72,7 @@ def refresh(wh: str | None = None, limit: int | None = None) -> int:
                 count += 1
 
             db.commit()
-            print(f"  {category_name}: {len(products)} productos")
+            print(f"  {category_name}: {len(products)} productos", flush=True)
             time.sleep(0.2 + random.uniform(0, 0.3))  # ritmo con jitter, no perfectamente regular
     finally:
         db.close()
