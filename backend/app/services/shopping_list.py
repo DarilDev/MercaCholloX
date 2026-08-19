@@ -14,6 +14,11 @@ from sqlalchemy.orm import Session
 
 from app.models import Favorite, Price, Product
 
+_STOPWORDS = {
+    "de", "del", "la", "el", "los", "las", "y", "en", "con", "sin", "para",
+    "un", "una", "unos", "unas", "al", "a", "o",
+}
+
 
 @dataclass
 class MatchedItem:
@@ -45,7 +50,7 @@ class ChainTotal:
 
 
 def _cheapest_match(db: Session, chain: str, query: str) -> tuple[Product, float] | None:
-    words = [w for w in query.strip().split() if w]
+    words = [w for w in query.strip().lower().split() if w and w not in _STOPWORDS]
     if not words:
         return None
 
@@ -63,8 +68,21 @@ def _cheapest_match(db: Session, chain: str, query: str) -> tuple[Product, float
     for word in words:
         q = q.filter(Product.name.ilike(f"%{word}%"))
 
-    best = q.order_by(Price.price.asc()).first()
-    return best if best else None
+    candidates = q.all()
+    if not candidates:
+        return None
+
+    # "Más barato que encaje" por sí solo falla: un tarrito de tomate que
+    # menciona "aceite de oliva" en su nombre le gana en precio a una botella
+    # de aceite de verdad. Se prioriza el nombre más "cercano" a la búsqueda
+    # (menos palabras de más) y solo se usa el precio como desempate — así un
+    # producto que es literalmente lo buscado gana sobre uno que solo lo menciona.
+    def noise(product: Product) -> int:
+        name_words = len(product.name.lower().split())
+        return max(name_words - len(words), 0)
+
+    candidates.sort(key=lambda pair: (noise(pair[0]), pair[1]))
+    return candidates[0]
 
 
 def known_chains(db: Session) -> list[str]:

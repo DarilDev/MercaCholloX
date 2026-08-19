@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/search_screen.dart';
+import 'screens/home_shell.dart';
 
 void main() {
   runApp(const MercaCholloApp());
@@ -14,7 +14,7 @@ class MercaCholloApp extends StatelessWidget {
     return MaterialApp(
       title: 'MercaChollo',
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.green)),
-      home: const SearchScreen(),
+      home: const HomeShell(),
     );
   }
 }
