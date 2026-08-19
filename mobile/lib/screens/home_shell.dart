@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'categories_screen.dart';
+import 'location_screen.dart';
 import 'search_screen.dart';
 import 'shopping_list_screen.dart';
 
@@ -18,6 +19,7 @@ class _HomeShellState extends State<HomeShell> {
     CategoriesScreen(),
     SearchScreen(),
     ShoppingListScreen(),
+    LocationScreen(),
   ];
 
   @override
@@ -31,6 +33,7 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Pasillos'),
           NavigationDestination(icon: Icon(Icons.search), label: 'Buscar'),
           NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), label: 'Mi lista'),
+          NavigationDestination(icon: Icon(Icons.place_outlined), label: 'Ubicación'),
         ],
       ),
     );

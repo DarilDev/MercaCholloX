@@ -9,5 +9,6 @@ void main() {
     expect(find.text('Pasillos'), findsWidgets);
     expect(find.text('Buscar'), findsWidgets);
     expect(find.text('Mi lista'), findsOneWidget);
+    expect(find.text('Ubicación'), findsOneWidget);
   });
 }

@@ -10,7 +10,7 @@ class BackendConfig {
   static const _prefsKey = 'api_base_url';
   static const _compiledDefault = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://f70a-188-85-102-238.ngrok-free.app',
+    defaultValue: 'https://mercachollo-api.onrender.com',
   );
 
   static Future<String> getBaseUrl() async {
