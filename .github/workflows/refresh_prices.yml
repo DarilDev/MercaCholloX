@@ -2,16 +2,10 @@ name: Refrescar precios de Mercadona
 
 # Deliberadamente aislado del backend en sí: si este job falla o se cuelga,
 # la API sigue viva (ver docs/DECISIONS.md, "Arquitectura para escalar").
-#
-# El disparador `schedule` está comentado hasta que exista el secret
-# MERCACHOLLO_DATABASE_URL (Postgres/Neon) en la configuración del repo —
-# activarlo antes solo generaría ejecuciones fallidas contra una base de
-# datos que no existe. Mientras tanto, se puede lanzar a mano con
-# "Run workflow" en la pestaña Actions.
 on:
   workflow_dispatch: {}
-  # schedule:
-  #   - cron: "0 6 * * *"  # una vez al día — los precios de super no cambian cada hora
+  schedule:
+    - cron: "0 6 * * *"  # una vez al día — los precios de super no cambian cada hora
 
 jobs:
   refresh:
