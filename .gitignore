@@ -1,0 +1,23 @@
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/data/*.db
+backend/.env
+
+# Flutter/Dart
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/**/gradle-wrapper.jar
+mobile/*.iml
+mobile/.idea/
+
+# Misc
+*.log
+.DS_Store
