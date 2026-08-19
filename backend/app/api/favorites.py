@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.deps import CurrentUser
 from app.models import Favorite
 from app.schemas import (
     ChainTotalOut,
@@ -17,13 +18,13 @@ router = APIRouter(prefix="/favorites", tags=["favorites"])
 
 
 @router.get("", response_model=list[FavoriteOut])
-def list_favorites(db: Session = Depends(get_db)):
-    return db.query(Favorite).all()
+def list_favorites(user: CurrentUser, db: Session = Depends(get_db)):
+    return db.query(Favorite).filter(Favorite.user_id == user.id).all()
 
 
 @router.post("", response_model=FavoriteOut)
-def add_favorite(payload: FavoriteIn, db: Session = Depends(get_db)):
-    favorite = Favorite(query=payload.query.strip(), quantity=payload.quantity)
+def add_favorite(payload: FavoriteIn, user: CurrentUser, db: Session = Depends(get_db)):
+    favorite = Favorite(user_id=user.id, query=payload.query.strip(), quantity=payload.quantity)
     db.add(favorite)
     db.commit()
     db.refresh(favorite)
@@ -31,8 +32,12 @@ def add_favorite(payload: FavoriteIn, db: Session = Depends(get_db)):
 
 
 @router.delete("/{favorite_id}")
-def delete_favorite(favorite_id: int, db: Session = Depends(get_db)):
-    favorite = db.query(Favorite).filter(Favorite.id == favorite_id).first()
+def delete_favorite(favorite_id: int, user: CurrentUser, db: Session = Depends(get_db)):
+    favorite = (
+        db.query(Favorite)
+        .filter(Favorite.id == favorite_id, Favorite.user_id == user.id)
+        .first()
+    )
     if favorite is None:
         raise HTTPException(status_code=404, detail="Favorito no encontrado")
     db.delete(favorite)
@@ -41,11 +46,11 @@ def delete_favorite(favorite_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/compare", response_model=ShoppingComparisonOut)
-def compare_favorites(db: Session = Depends(get_db)):
+def compare_favorites(user: CurrentUser, db: Session = Depends(get_db)):
     """Para cada cadena con datos cacheados, calcula el total de la lista de
-    favoritos (emparejando el producto más barato que encaje en cada uno) y
-    señala cuál sale más barata en conjunto."""
-    chain_totals = shopping_list.compare_favorites(db)
+    favoritos del usuario (emparejando el producto más barato que encaje en
+    cada uno) y señala cuál sale más barata en conjunto."""
+    chain_totals = shopping_list.compare_favorites(db, user_id=user.id)
 
     chains_out = []
     for ct in chain_totals:

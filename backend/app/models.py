@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -8,6 +8,18 @@ from app.db import Base
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+class User(Base):
+    """Identidad anónima por dispositivo (header X-Device-Id), no login real.
+    Suficiente para aislar los datos de un grupo de confianza (amigos/familia)
+    entre sí — no es seguridad frente a un adversario. Ver docs/DECISIONS.md."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    device_uuid: Mapped[str] = mapped_column(String, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class Store(Base):
@@ -26,6 +38,7 @@ class Store(Base):
 
 class Product(Base):
     __tablename__ = "products"
+    __table_args__ = (UniqueConstraint("chain", "external_id", name="uq_product_chain_external_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     chain: Mapped[str] = mapped_column(String, index=True)
@@ -35,6 +48,12 @@ class Product(Base):
     category: Mapped[str | None] = mapped_column(String, nullable=True)  # subcategoría dentro del pasillo
     unit: Mapped[str | None] = mapped_column(String, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Materializado por el worker de refresco al escribir — evita recalcular
+    # MAX(id) sobre `prices` (que crece sin límite) en cada lectura. `prices`
+    # sigue existiendo tal cual para el histórico completo, esto es solo "cuál
+    # es el precio ahora mismo".
+    current_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    current_price_captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Price(Base):
@@ -59,16 +78,17 @@ class Favorite(Base):
     __tablename__ = "favorites"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     query: Mapped[str] = mapped_column(String)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
 
 
 class UserProfile(Base):
-    """Fila única (id=1) mientras la beta sea de un solo usuario por backend."""
+    """Una fila por usuario (antes era una fila única id=1 para toda la beta)."""
 
     __tablename__ = "user_profile"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     home_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     home_lon: Mapped[float | None] = mapped_column(Float, nullable=True)
     work_lat: Mapped[float | None] = mapped_column(Float, nullable=True)

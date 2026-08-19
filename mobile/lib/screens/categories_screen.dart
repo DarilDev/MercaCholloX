@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/category.dart';
 import '../services/api_client.dart';
+import 'settings_screen.dart';
 import 'subcategories_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
@@ -24,7 +25,18 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pasillos')),
+      appBar: AppBar(
+        title: const Text('Pasillos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: FutureBuilder<List<SupermarketCategory>>(
         future: _categories,
         builder: (context, snapshot) {

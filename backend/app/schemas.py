@@ -52,3 +52,27 @@ class ChainTotalOut(BaseModel):
 class ShoppingComparisonOut(BaseModel):
     chains: list[ChainTotalOut]
     cheapest_chain: str | None
+
+
+class UserProfileIn(BaseModel):
+    home_lat: float | None = None
+    home_lon: float | None = None
+    work_lat: float | None = None
+    work_lon: float | None = None
+    usual_store_id: int | None = None
+    vehicle_consumption_l_per_100km: float = 6.5
+    fuel_type: str = "gasoleo_a"
+    hourly_value_eur: float = 8.0
+
+
+class UserProfileOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    home_lat: float | None
+    home_lon: float | None
+    work_lat: float | None
+    work_lon: float | None
+    usual_store_id: int | None
+    vehicle_consumption_l_per_100km: float
+    fuel_type: str
+    hourly_value_eur: float

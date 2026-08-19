@@ -1,17 +1,29 @@
-# mercachollo
+# MercaChollo — app móvil
 
-A new Flutter project.
+App Android (Flutter) de MercaChollo. Cliente fino: la lógica real (precios, matching, comparación) vive en `../backend/`.
 
-## Getting Started
+## Estructura
 
-This project is a starting point for a Flutter application.
+```
+lib/
+├── main.dart
+├── models/       # Product, SupermarketCategory, Favorite, ShoppingComparison
+├── services/      # api_client.dart — todas las llamadas al backend
+├── screens/       # Pasillos, Buscar, Mi lista
+└── widgets/       # ProductTile (imagen + precio + añadir a la lista)
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Arrancar en local (WSL2)
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+source ../scripts/env.sh   # carga Flutter/Android SDK/JDK (instalados sin apt, ver ../docs/DECISIONS.md)
+flutter run                # con el móvil conectado por ADB inalámbrico
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+La URL del backend se configura en `lib/services/api_client.dart` — ver `../docs/DECISIONS.md` para cómo se expone (ngrok en desarrollo, migrando a Render — ver la sección "Arquitectura para escalar" del plan del proyecto).
+
+## Tests
+
+```bash
+flutter test
+```

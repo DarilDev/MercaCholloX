@@ -9,10 +9,9 @@ concreto se emparejó, no una caja negra.
 
 from dataclasses import dataclass
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Favorite, Price, Product
+from app.models import Favorite, Product
 
 _STOPWORDS = {
     "de", "del", "la", "el", "los", "las", "y", "en", "con", "sin", "para",
@@ -54,17 +53,9 @@ def _cheapest_match(db: Session, chain: str, query: str) -> tuple[Product, float
     if not words:
         return None
 
-    latest_price_ids = (
-        db.query(Price.product_id, func.max(Price.id).label("latest_id"))
-        .group_by(Price.product_id)
-        .subquery()
-    )
-    q = (
-        db.query(Product, Price.price)
-        .join(latest_price_ids, Product.id == latest_price_ids.c.product_id)
-        .join(Price, Price.id == latest_price_ids.c.latest_id)
-        .filter(Product.chain == chain)
-    )
+    # current_price materializado por el worker de refresco — evita recalcular
+    # MAX(id) sobre `prices` (que crece sin límite) en cada búsqueda.
+    q = db.query(Product).filter(Product.chain == chain, Product.current_price.isnot(None))
     for word in words:
         q = q.filter(Product.name.ilike(f"%{word}%"))
 
@@ -81,16 +72,17 @@ def _cheapest_match(db: Session, chain: str, query: str) -> tuple[Product, float
         name_words = len(product.name.lower().split())
         return max(name_words - len(words), 0)
 
-    candidates.sort(key=lambda pair: (noise(pair[0]), pair[1]))
-    return candidates[0]
+    candidates.sort(key=lambda p: (noise(p), p.current_price))
+    best = candidates[0]
+    return best, best.current_price
 
 
 def known_chains(db: Session) -> list[str]:
     return [row[0] for row in db.query(Product.chain).distinct().all()]
 
 
-def compare_favorites(db: Session) -> list[ChainTotal]:
-    favorites = db.query(Favorite).all()
+def compare_favorites(db: Session, user_id: int) -> list[ChainTotal]:
+    favorites = db.query(Favorite).filter(Favorite.user_id == user_id).all()
     results: list[ChainTotal] = []
 
     for chain in known_chains(db):

@@ -12,8 +12,8 @@ import time
 
 from sqlalchemy.orm import Session
 
-from app.db import SessionLocal, init_db
-from app.models import Price, Product
+from app.db import SessionLocal
+from app.models import Price, Product, utcnow
 from app.services import mercadona_client as mc
 
 
@@ -41,11 +41,12 @@ def upsert_product(db: Session, item: mc.MercadonaProduct) -> Product:
         product.category = item.category
         product.unit = item.unit
         product.image_url = item.image_url
+    product.current_price = item.price
+    product.current_price_captured_at = utcnow()
     return product
 
 
 def refresh(wh: str | None = None, limit: int | None = None) -> int:
-    init_db()
     db = SessionLocal()
     count = 0
     try:
