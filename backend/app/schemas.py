@@ -54,6 +54,18 @@ class ShoppingComparisonOut(BaseModel):
     cheapest_chain: str | None
 
 
+class StoreOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    chain: str
+    name: str
+    address: str | None
+    lat: float
+    lon: float
+    distance_km: float
+
+
 class UserProfileIn(BaseModel):
     home_lat: float | None = None
     home_lon: float | None = None
