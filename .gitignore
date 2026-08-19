@@ -4,6 +4,8 @@ backend/__pycache__/
 backend/**/__pycache__/
 backend/*.pyc
 backend/data/*.db
+backend/data/*.db-wal
+backend/data/*.db-shm
 backend/.env
 
 # Flutter/Dart

@@ -7,6 +7,7 @@ sin recorrer las ~100+ categorías completas.
 """
 
 import argparse
+import random
 import time
 
 from sqlalchemy.orm import Session
@@ -55,7 +56,12 @@ def refresh(wh: str | None = None, limit: int | None = None) -> int:
         for category_id, category_name, top_category_name in leaves:
             try:
                 products = mc.fetch_category_products(category_id, top_category_name, wh)
-            except Exception as exc:  # red/API errors puntuales no deben tumbar todo el refresco
+            except mc.MercadonaBlockedError:
+                # Nos han limitado/bloqueado: seguir insistiendo es lo peor que se
+                # puede hacer (ver docstring del cliente) — parar el run entero.
+                print(f"  !! BLOQUEADO por Mercadona en categoría {category_id} — abortando el refresco.")
+                raise
+            except Exception as exc:  # fallo puntual de una categoría, no de toda la fuente
                 print(f"  ! error en categoría {category_id} ({category_name}): {exc}")
                 continue
 
@@ -66,7 +72,7 @@ def refresh(wh: str | None = None, limit: int | None = None) -> int:
 
             db.commit()
             print(f"  {category_name}: {len(products)} productos")
-            time.sleep(0.2)  # no saturar la API de Mercadona
+            time.sleep(0.2 + random.uniform(0, 0.3))  # ritmo con jitter, no perfectamente regular
     finally:
         db.close()
     return count

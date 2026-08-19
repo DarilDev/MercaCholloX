@@ -1,3 +1,5 @@
+import pytest
+
 from app.services.mercadona_client import _parse_price, fetch_category_products
 
 
@@ -15,10 +17,14 @@ def test_parse_price_handles_none():
     assert _parse_price(None) is None
 
 
+@pytest.mark.live
 def test_fetch_category_products_normalizes_real_category():
     # Golpea la API real de Mercadona (categoría hoja "Refresco de cola",
     # id devuelto por fetch_leaf_category_ids) — confirma que el parser sigue
     # encajando con el formato real, no solo con datos mockeados.
+    # Excluido por defecto (ver pyproject.toml) para que un CI que corra
+    # pytest en cada commit no acabe machacando a Mercadona automáticamente.
+    # Ejecutar a mano con: pytest -m live
     products = fetch_category_products(158, top_category="Agua y refrescos")
     assert len(products) > 0
     assert all(p.price > 0 for p in products)

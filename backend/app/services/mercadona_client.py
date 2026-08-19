@@ -7,17 +7,32 @@ Verificado a mano contra la API real:
 `wh` identifica el almacén/región de reparto (los precios de Mercadona son
 prácticamente uniformes en toda España — ver docs/DECISIONS.md — así que el
 valor de `wh` solo afecta disponibilidad, no precio, salvo excepciones puntuales).
+
+Es la única fuente de datos real del producto — nunca paralelizar peticiones
+"para ir más rápido": es exactamente la señal que detectan los sistemas
+anti-bot y el camino más rápido a perder el acceso (ver docs/DECISIONS.md,
+sección "Arquitectura para escalar" del plan).
 """
 
+import random
+import time
 from dataclasses import dataclass
 
 import httpx
 
 from app.config import settings
 
+_MAX_RETRIES = 3
+_BASE_DELAY_S = 1.0
+
 
 class MercadonaClientError(Exception):
     pass
+
+
+class MercadonaBlockedError(MercadonaClientError):
+    """429/403 — nos han limitado o bloqueado. No reintentar: el llamador debe
+    parar el refresco entero y avisar, no seguir insistiendo contra el bloqueo."""
 
 
 @dataclass
@@ -48,14 +63,45 @@ def _client(timeout: float = 10.0) -> httpx.Client:
     )
 
 
+def _get(path: str, params: dict) -> dict:
+    """GET con reintento acotado para fallos transitorios, y sin reintento
+    (falla ya) para 429/403 — no tiene sentido insistir contra un bloqueo."""
+    last_error: Exception | None = None
+
+    for attempt in range(_MAX_RETRIES):
+        if attempt > 0:
+            # backoff exponencial + jitter: un ritmo perfectamente regular es
+            # en sí mismo una señal de bot, y machacar justo tras un fallo
+            # transitorio no ayuda a nadie.
+            delay = _BASE_DELAY_S * (2**attempt) + random.uniform(0, 0.5)
+            time.sleep(delay)
+
+        try:
+            with _client() as client:
+                resp = client.get(path, params=params)
+        except httpx.TransportError as exc:  # timeout, conexión rota, etc.
+            last_error = exc
+            continue
+
+        if resp.status_code in (403, 429):
+            raise MercadonaBlockedError(
+                f"Mercadona devolvió {resp.status_code} en {path} — parece un bloqueo/límite, no reintentar."
+            )
+        if resp.status_code >= 500:
+            last_error = MercadonaClientError(f"Error {resp.status_code} en {path}")
+            continue
+
+        resp.raise_for_status()  # otros 4xx: no es transitorio, no reintentar
+        return resp.json()
+
+    raise MercadonaClientError(f"Fallo tras {_MAX_RETRIES} intentos en {path}: {last_error}")
+
+
 def fetch_category_tree(wh: str | None = None) -> list[dict]:
     """Devuelve el árbol de categorías top-level, cada una con sus subcategorías (id, name)."""
     wh = wh or settings.mercadona_default_wh
-    with _client() as client:
-        resp = client.get("/categories/", params={"lang": "es", "wh": wh})
-        resp.raise_for_status()
-        data = resp.json()
-        return data["results"]
+    data = _get("/categories/", {"lang": "es", "wh": wh})
+    return data["results"]
 
 
 def fetch_leaf_category_ids(wh: str | None = None) -> list[tuple[int, str, str]]:
@@ -76,10 +122,7 @@ def fetch_category_products(
 ) -> list[MercadonaProduct]:
     """Consulta una subcategoría y devuelve sus productos con precio, imagen y pasillo."""
     wh = wh or settings.mercadona_default_wh
-    with _client() as client:
-        resp = client.get(f"/categories/{category_id}/", params={"lang": "es", "wh": wh})
-        resp.raise_for_status()
-        data = resp.json()
+    data = _get(f"/categories/{category_id}/", {"lang": "es", "wh": wh})
 
     products: list[MercadonaProduct] = []
     for group in data.get("categories", []):

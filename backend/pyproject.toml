@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+markers = [
+    "live: golpea una API externa real (ej. Mercadona) — excluido por defecto, correr con `pytest -m live`.",
+]
+addopts = "-m 'not live'"
