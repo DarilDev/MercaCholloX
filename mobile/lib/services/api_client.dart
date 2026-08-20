@@ -33,15 +33,21 @@ class ApiClient {
     return data.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<List<SupermarketCategory>> getCategories() async {
-    final data = await _get('/categories') as List<dynamic>;
+  Future<List<String>> getChains() async {
+    final data = await _get('/chains') as List<dynamic>;
+    return data.cast<String>();
+  }
+
+  Future<List<SupermarketCategory>> getCategories(String chain) async {
+    final data = await _get('/categories', {'chain': chain}) as List<dynamic>;
     return data
         .map((e) => SupermarketCategory.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<Product>> getProducts({String? topCategory, String? category}) async {
+  Future<List<Product>> getProducts(String chain, {String? topCategory, String? category}) async {
     final query = <String, String>{
+      'chain': chain,
       'top_category': ?topCategory,
       'category': ?category,
     };

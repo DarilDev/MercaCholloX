@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Product
 from app.schemas import CategoryOut, ProductOut
+from app.services.shopping_list import known_chains
 
 router = APIRouter(tags=["products"])
 
@@ -22,14 +23,22 @@ def _to_product_out(product: Product) -> ProductOut:
     )
 
 
+@router.get("/chains", response_model=list[str])
+def list_chains(db: Session = Depends(get_db)):
+    """Cadenas con datos cacheados — cada una tiene su propia taxonomía de
+    pasillos/categorías, no tiene sentido mezclarlas al navegar."""
+    return known_chains(db)
+
+
 @router.get("/categories", response_model=list[CategoryOut])
-def list_categories(db: Session = Depends(get_db)):
-    """Pasillos del supermercado (categorías top-level) con sus subcategorías,
-    para navegar como en una tienda real en vez de buscar por texto libre."""
+def list_categories(chain: str, db: Session = Depends(get_db)):
+    """Pasillos de una cadena (categorías top-level) con sus subcategorías,
+    para navegar como en una tienda real en vez de buscar por texto libre.
+    Cada cadena tiene su propia taxonomía — mezclarlas no tendría sentido."""
 
     rows = (
         db.query(Product.top_category, Product.category)
-        .filter(Product.top_category.isnot(None))
+        .filter(Product.chain == chain, Product.top_category.isnot(None))
         .distinct()
         .all()
     )
@@ -46,12 +55,13 @@ def list_categories(db: Session = Depends(get_db)):
 
 @router.get("/products", response_model=list[ProductOut])
 def list_products(
+    chain: str,
     top_category: str | None = None,
     category: str | None = None,
     db: Session = Depends(get_db),
 ):
-    """Productos de un pasillo/subcategoría — navegación tipo supermercado."""
-    query = db.query(Product).filter(Product.current_price.isnot(None))
+    """Productos de un pasillo/subcategoría de una cadena — navegación tipo supermercado."""
+    query = db.query(Product).filter(Product.chain == chain, Product.current_price.isnot(None))
     if top_category:
         query = query.filter(Product.top_category == top_category)
     if category:
@@ -62,8 +72,9 @@ def list_products(
 
 @router.get("/products/search", response_model=list[ProductOut])
 def search_products(q: str = Query(min_length=2), db: Session = Depends(get_db)):
-    """Busca por substring en la caché local (la API de Mercadona no ofrece
-    búsqueda libre, solo navegación por categorías — ver docs/ARCHITECTURE.md)."""
+    """Busca por substring en la caché local, entre todas las cadenas — a
+    diferencia de la navegación por pasillos, aquí sí tiene sentido comparar
+    a simple vista qué hay en cada una (la ficha ya indica la cadena)."""
     products = (
         db.query(Product)
         .filter(Product.current_price.isnot(None), Product.name.ilike(f"%{q}%"))

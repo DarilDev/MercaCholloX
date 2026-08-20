@@ -5,11 +5,13 @@ import '../services/api_client.dart';
 import '../widgets/product_tile.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
+  final String chain;
   final String topCategory;
   final String category;
 
   const CategoryProductsScreen({
     super.key,
+    required this.chain,
     required this.topCategory,
     required this.category,
   });
@@ -26,6 +28,7 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   void initState() {
     super.initState();
     _products = _apiClient.getProducts(
+      widget.chain,
       topCategory: widget.topCategory,
       category: widget.category,
     );

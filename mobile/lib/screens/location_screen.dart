@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../models/profile.dart';
 import '../models/store.dart';
@@ -14,6 +16,7 @@ class LocationScreen extends StatefulWidget {
 
 class _LocationScreenState extends State<LocationScreen> {
   final _apiClient = ApiClient();
+  final _mapController = MapController();
   UserProfile? _profile;
   List<NearbyStore> _nearbyStores = [];
   bool _loading = true;
@@ -76,6 +79,7 @@ class _LocationScreenState extends State<LocationScreen> {
       final saved = await _apiClient.updateProfile(updated);
       setState(() => _profile = saved);
       await _loadNearbyStores(position.latitude, position.longitude);
+      _mapController.move(LatLng(position.latitude, position.longitude), 14);
     }
     if (mounted) setState(() => _busy = false);
   }
@@ -102,74 +106,134 @@ class _LocationScreenState extends State<LocationScreen> {
     );
   }
 
+  List<Marker> _buildMarkers(UserProfile profile) {
+    final markers = <Marker>[];
+    if (profile.homeLat != null && profile.homeLon != null) {
+      markers.add(Marker(
+        point: LatLng(profile.homeLat!, profile.homeLon!),
+        width: 36,
+        height: 36,
+        child: const Icon(Icons.home, color: Colors.blue, size: 32),
+      ));
+    }
+    if (profile.workLat != null && profile.workLon != null) {
+      markers.add(Marker(
+        point: LatLng(profile.workLat!, profile.workLon!),
+        width: 36,
+        height: 36,
+        child: const Icon(Icons.work, color: Colors.deepOrange, size: 30),
+      ));
+    }
+    for (final store in _nearbyStores) {
+      final isUsual = store.id == profile.usualStoreId;
+      markers.add(Marker(
+        point: LatLng(store.lat, store.lon),
+        width: 30,
+        height: 30,
+        child: Icon(
+          isUsual ? Icons.star : Icons.storefront,
+          color: isUsual ? Colors.amber : Colors.green,
+          size: isUsual ? 28 : 22,
+        ),
+      ));
+    }
+    return markers;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading || _profile == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final profile = _profile!;
+    final center = profile.homeLat != null
+        ? LatLng(profile.homeLat!, profile.homeLon!)
+        : const LatLng(40.4168, -3.7038); // Madrid, por defecto sin casa fijada
 
     return Scaffold(
       appBar: AppBar(title: const Text('Casa, trabajo y súper habitual')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
         children: [
-          ListTile(
-            leading: const Icon(Icons.home_outlined),
-            title: const Text('Casa'),
-            subtitle: Text(
-              profile.homeLat != null
-                  ? '${profile.homeLat!.toStringAsFixed(4)}, ${profile.homeLon!.toStringAsFixed(4)}'
-                  : 'Sin fijar',
+          SizedBox(
+            height: 260,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(initialCenter: center, initialZoom: 14),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.mercachollo.mercachollo',
+                ),
+                MarkerLayer(markers: _buildMarkers(profile)),
+              ],
             ),
-            trailing: _busy
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : TextButton(
-                    onPressed: _setHomeToCurrentLocation,
-                    child: const Text('Usar mi ubicación'),
-                  ),
           ),
-          ListTile(
-            leading: const Icon(Icons.work_outline),
-            title: const Text('Trabajo (opcional)'),
-            subtitle: Text(
-              profile.workLat != null
-                  ? '${profile.workLat!.toStringAsFixed(4)}, ${profile.workLon!.toStringAsFixed(4)}'
-                  : 'Sin fijar',
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.home_outlined),
+                  title: const Text('Casa'),
+                  subtitle: Text(
+                    profile.homeLat != null
+                        ? '${profile.homeLat!.toStringAsFixed(4)}, ${profile.homeLon!.toStringAsFixed(4)}'
+                        : 'Sin fijar',
+                  ),
+                  trailing: _busy
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton(
+                          onPressed: _setHomeToCurrentLocation,
+                          child: const Text('Usar mi ubicación'),
+                        ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.work_outline),
+                  title: const Text('Trabajo (opcional)'),
+                  subtitle: Text(
+                    profile.workLat != null
+                        ? '${profile.workLat!.toStringAsFixed(4)}, ${profile.workLon!.toStringAsFixed(4)}'
+                        : 'Sin fijar',
+                  ),
+                  trailing: _busy
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : TextButton(
+                          onPressed: _setWorkToCurrentLocation,
+                          child: const Text('Usar mi ubicación'),
+                        ),
+                ),
+                const Divider(height: 32),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Súper cercanos', style: Theme.of(context).textTheme.titleMedium),
+                ),
+                const SizedBox(height: 8),
+                if (profile.homeLat == null)
+                  const Text('Fija tu casa para ver los súper cercanos de verdad.')
+                else if (_nearbyStores.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  ..._nearbyStores.map((store) {
+                    final isUsual = store.id == profile.usualStoreId;
+                    return ListTile(
+                      leading: Icon(isUsual ? Icons.star : Icons.storefront_outlined,
+                          color: isUsual ? Colors.amber : null),
+                      title: Text(store.name),
+                      subtitle: Text('${store.chain} · ${store.distanceKm} km'),
+                      trailing: isUsual
+                          ? const Text('Habitual')
+                          : TextButton(
+                              onPressed: () => _setUsualStore(store),
+                              child: const Text('Marcar habitual'),
+                            ),
+                    );
+                  }),
+              ],
             ),
-            trailing: _busy
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : TextButton(
-                    onPressed: _setWorkToCurrentLocation,
-                    child: const Text('Usar mi ubicación'),
-                  ),
           ),
-          const Divider(height: 32),
-          Text('Súper cercanos', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (profile.homeLat == null)
-            const Text('Fija tu casa para ver los súper cercanos de verdad.')
-          else if (_nearbyStores.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            ..._nearbyStores.map((store) {
-              final isUsual = store.id == profile.usualStoreId;
-              return ListTile(
-                leading: Icon(isUsual ? Icons.star : Icons.storefront_outlined,
-                    color: isUsual ? Colors.amber : null),
-                title: Text(store.name),
-                subtitle: Text('${store.chain} · ${store.distanceKm} km'),
-                trailing: isUsual
-                    ? const Text('Habitual')
-                    : TextButton(
-                        onPressed: () => _setUsualStore(store),
-                        child: const Text('Marcar habitual'),
-                      ),
-              );
-            }),
         ],
       ),
     );

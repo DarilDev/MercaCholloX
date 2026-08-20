@@ -4,9 +4,10 @@ import '../models/category.dart';
 import 'category_products_screen.dart';
 
 class SubcategoriesScreen extends StatelessWidget {
+  final String chain;
   final SupermarketCategory category;
 
-  const SubcategoriesScreen({super.key, required this.category});
+  const SubcategoriesScreen({super.key, required this.chain, required this.category});
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +24,7 @@ class SubcategoriesScreen extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => CategoryProductsScreen(
+                  chain: chain,
                   topCategory: category.name,
                   category: sub,
                 ),

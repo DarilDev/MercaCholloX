@@ -5,7 +5,18 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 ## [Sin publicar]
 
 ### En curso
-- Migración real de SQLite a Postgres (Neon) y del backend de ngrok a Render — pendiente de que se creen las cuentas necesarias.
+- Fase 5: motor de scoring "vale la pena el desvío" (MITECO + OSRM + fórmula de ahorro neto).
+
+### Añadido — 2026-08-19 (madrugada)
+- Navegación por pasillos separada por cadena: `/categories` y `/products` ahora requieren `chain`, más un endpoint `GET /chains`. Antes mezclaba la taxonomía de Mercadona y Dia en la misma lista de "Pasillos" (49 entradas sin sentido) — ahora hay un selector arriba de la pantalla.
+- Mapa real (`flutter_map` + OpenStreetMap) en la pantalla de Ubicación: casa, trabajo y súper cercanos como marcadores, además de la lista de siempre.
+- La búsqueda (que sí mezcla cadenas a propósito) ahora muestra de qué cadena es cada resultado.
+
+### Añadido — 2026-08-19 (noche)
+- **Render y Neon en producción real**: backend desplegado en `https://mercachollo-api.onrender.com` (`render.yaml`), base de datos en Neon con el catálogo completo cargado. Arreglado un bug real de Render: comprueba por defecto si el servicio está listo pidiendo `/`, que no existía — la app se marcaba como no lista y Render le cortaba el tráfico pese a estar funcionando. La app ya no depende de ngrok.
+- **Fase 2 y 3 cerradas con UI real**: pantalla "Ubicación" en la app — casa/trabajo con GPS real (`geolocator`), lista de súper físicos reales cerca (OpenStreetMap Overpass, con distancia), marcar el habitual. `overpass_client.py` tuvo que resolver un 406 real: Overpass rechaza peticiones cuyo User-Agent imita un navegador.
+- **Fase 4: Dia integrado**, segunda cadena con variación de precio real. Selenium (con y sin `undetected-chromedriver`) recibe "Access Denied" de Akamai en dia.es, pero peticiones HTTP simples sí pasan — no hacía falta Selenium después de todo. Endpoint real descubierto a mano (`/api/v1/search-back/search`), catálogo poblado buscando ~40 términos habituales (sin árbol de categorías navegable encontrado). Checkpoint del plan confirmado: aceite de oliva a 3,80€ en Mercadona vs 3,99€ en Dia, mismo producto real en ambos.
+- Workflows de GitHub Actions aislados por cadena — Mercadona programado a diario, Dia solo manual por ahora (Akamai de por medio, mejor confirmar que aguanta antes de dejarlo desatendido).
 
 ### Añadido — 2026-08-19 (tarde)
 - Identidad por dispositivo (`X-Device-Id`): tabla `users`, favoritos y perfil ya no son globales — cada dispositivo ve solo su propia lista. Verificado con dos identidades distintas.

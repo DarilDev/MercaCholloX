@@ -14,12 +14,24 @@ class CategoriesScreen extends StatefulWidget {
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
   final _apiClient = ApiClient();
-  late Future<List<SupermarketCategory>> _categories;
+  late Future<List<String>> _chains;
+  String? _selectedChain;
+  Future<List<SupermarketCategory>>? _categories;
 
   @override
   void initState() {
     super.initState();
-    _categories = _apiClient.getCategories();
+    _chains = _apiClient.getChains().then((chains) {
+      if (chains.isNotEmpty) _selectChain(chains.first);
+      return chains;
+    });
+  }
+
+  void _selectChain(String chain) {
+    setState(() {
+      _selectedChain = chain;
+      _categories = _apiClient.getCategories(chain);
+    });
   }
 
   @override
@@ -37,34 +49,69 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<SupermarketCategory>>(
-        future: _categories,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<List<String>>(
+        future: _chains,
+        builder: (context, chainsSnapshot) {
+          if (chainsSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+          final chains = chainsSnapshot.data ?? [];
+          if (chains.isEmpty) {
+            return const Center(child: Text('Todavía no hay ninguna cadena con datos'));
           }
-          final categories = snapshot.data ?? [];
-          return ListView.builder(
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final cat = categories[index];
-              return ListTile(
-                leading: const Icon(Icons.storefront_outlined),
-                title: Text(cat.name),
-                subtitle: Text('${cat.subcategories.length} subcategorías'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SubcategoriesScreen(category: cat)),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SegmentedButton<String>(
+                  segments: chains
+                      .map((c) => ButtonSegment(value: c, label: Text(c)))
+                      .toList(),
+                  selected: {_selectedChain ?? chains.first},
+                  onSelectionChanged: (selection) => _selectChain(selection.first),
                 ),
-              );
-            },
+              ),
+              Expanded(child: _buildCategoryList()),
+            ],
           );
         },
       ),
+    );
+  }
+
+  Widget _buildCategoryList() {
+    return FutureBuilder<List<SupermarketCategory>>(
+      future: _categories,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final categories = snapshot.data ?? [];
+        return ListView.builder(
+          itemCount: categories.length,
+          itemBuilder: (context, index) {
+            final cat = categories[index];
+            return ListTile(
+              leading: const Icon(Icons.storefront_outlined),
+              title: Text(cat.name),
+              subtitle: Text('${cat.subcategories.length} subcategorías'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SubcategoriesScreen(
+                    chain: _selectedChain!,
+                    category: cat,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

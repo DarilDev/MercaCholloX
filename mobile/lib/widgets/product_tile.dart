@@ -34,7 +34,7 @@ class ProductTile extends StatelessWidget {
             : const Icon(Icons.shopping_basket_outlined),
       ),
       title: Text(product.name),
-      subtitle: Text(product.category ?? ''),
+      subtitle: Text('${product.category ?? ''} · ${product.chain}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
