@@ -135,6 +135,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Error cargando la lista: ${snapshot.error}'),
+            ),
+          );
+        }
         final favorites = snapshot.data ?? [];
         if (favorites.isEmpty) {
           return const Center(child: Text('Tu lista está vacía'));
