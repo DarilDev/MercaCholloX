@@ -6,6 +6,7 @@ import '../models/favorite.dart';
 import '../models/product.dart';
 import '../models/profile.dart';
 import '../models/store.dart';
+import '../models/worth_it.dart';
 import 'backend_config.dart';
 import 'device_identity.dart';
 
@@ -23,9 +24,19 @@ class ApiClient {
   Future<dynamic> _get(String path, [Map<String, String>? query]) async {
     final response = await http.get(await _uri(path, query), headers: await _headers());
     if (response.statusCode != 200) {
-      throw Exception('Error ${response.statusCode} en $path');
+      throw Exception('${response.statusCode}: ${_errorDetail(response)}');
     }
     return jsonDecode(utf8.decode(response.bodyBytes));
+  }
+
+  String _errorDetail(http.Response response) {
+    try {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is Map && body['detail'] is String) return body['detail'] as String;
+    } catch (_) {
+      // cuerpo no-JSON (ej. 502 de un servicio caído) — se usa el texto crudo
+    }
+    return 'Error en ${response.request?.url.path}';
   }
 
   Future<List<Product>> searchProducts(String query) async {
@@ -88,6 +99,11 @@ class ApiClient {
       throw Exception('Error guardando el perfil: ${response.statusCode}');
     }
     return UserProfile.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
+  }
+
+  Future<List<WorthItResult>> getWorthIt() async {
+    final data = await _get('/worth-it') as List<dynamic>;
+    return data.map((e) => WorthItResult.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<List<NearbyStore>> getNearbyStores(double lat, double lon, {double radiusKm = 3}) async {

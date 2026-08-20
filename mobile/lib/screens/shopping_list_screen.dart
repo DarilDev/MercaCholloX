@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/favorite.dart';
+import '../models/profile.dart';
+import '../models/worth_it.dart';
 import '../services/api_client.dart';
+import '../widgets/worth_it_card.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key});
@@ -14,19 +17,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final _apiClient = ApiClient();
   final _controller = TextEditingController();
   Future<List<Favorite>>? _favorites;
+  UserProfile? _profile;
   ShoppingComparison? _comparison;
+  List<WorthItResult>? _worthItResults;
   bool _comparing = false;
 
   @override
   void initState() {
     super.initState();
     _reload();
+    _apiClient.getProfile().then((p) {
+      if (mounted) setState(() => _profile = p);
+    });
   }
 
   void _reload() {
     setState(() {
       _favorites = _apiClient.getFavorites();
       _comparison = null;
+      _worthItResults = null;
     });
   }
 
@@ -46,8 +55,26 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Future<void> _compare() async {
     setState(() => _comparing = true);
     try {
-      final result = await _apiClient.compareFavorites();
-      setState(() => _comparison = result);
+      // Con casa fijada en el perfil, el "vale la pena el desvío" es
+      // estrictamente más útil que el total desnudo — lo sustituye, no lo
+      // añade, para no duplicar la misma decisión con dos vistas distintas.
+      if (_profile?.homeLat != null && _profile?.homeLon != null) {
+        final result = await _apiClient.getWorthIt();
+        setState(() {
+          _worthItResults = result;
+          _comparison = null;
+        });
+      } else {
+        final result = await _apiClient.compareFavorites();
+        setState(() {
+          _comparison = result;
+          _worthItResults = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
     } finally {
       if (mounted) setState(() => _comparing = false);
     }
@@ -77,6 +104,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             ),
           ),
           Expanded(child: _buildFavoritesList()),
+          if (_worthItResults != null) _buildWorthIt(_worthItResults!),
           if (_comparison != null) _buildComparison(_comparison!),
           Padding(
             padding: const EdgeInsets.all(12),
@@ -126,6 +154,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildWorthIt(List<WorthItResult> results) {
+    if (results.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Text(
+          'No hay otra cadena cercana con la que comparar tu cesta ahora mismo.',
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 320),
+      child: ListView(
+        shrinkWrap: true,
+        children: results.map((r) => WorthItCard(result: r)).toList(),
+      ),
     );
   }
 
