@@ -55,6 +55,14 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           if (chainsSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (chainsSnapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text('Error cargando cadenas: ${chainsSnapshot.error}'),
+              ),
+            );
+          }
           final chains = chainsSnapshot.data ?? [];
           if (chains.isEmpty) {
             return const Center(child: Text('Todavía no hay ninguna cadena con datos'));
