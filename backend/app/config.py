@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     overpass_url: str = "https://overpass-api.de/api/interpreter"
     osrm_url: str = "https://router.project-osrm.org"
+    miteco_url: str = (
+        "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes"
+        "/PreciosCarburantes/EstacionesTerrestres/"
+    )
 
     default_vehicle_consumption_l_per_100km: float = 6.5
     default_fuel_type: str = "gasoleo_a"  # coincide con las categorías del MITECO

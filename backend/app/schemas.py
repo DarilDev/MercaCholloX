@@ -88,3 +88,15 @@ class UserProfileOut(BaseModel):
     vehicle_consumption_l_per_100km: float
     fuel_type: str
     hourly_value_eur: float
+
+
+class WorthItOut(BaseModel):
+    chain: str
+    usual_chain: str
+    detour_extra_km: float
+    detour_extra_min: float
+    fuel_cost_eur: float
+    time_cost_eur: float
+    basket_savings_eur: float
+    net_savings_eur: float
+    worth_it: bool

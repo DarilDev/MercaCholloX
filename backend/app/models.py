@@ -61,6 +61,22 @@ class Product(Base):
     current_price_captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
+class FuelStation(Base):
+    """Cacheada desde el MITECO (ver services/miteco_client.py) — nunca se
+    consulta en vivo por petición de usuario, se refresca a diario."""
+
+    __tablename__ = "fuel_stations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    external_id: Mapped[str] = mapped_column(String, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String)
+    lat: Mapped[float] = mapped_column(Float)
+    lon: Mapped[float] = mapped_column(Float)
+    gasoleo_a: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gasolina_95_e5: Mapped[float | None] = mapped_column(Float, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class Price(Base):
     """Append-only: cada consulta inserta una fila nueva, nunca se actualiza.
     Así el histórico de precios sale gratis desde el diseño inicial."""

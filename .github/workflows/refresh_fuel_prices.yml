@@ -1,0 +1,39 @@
+name: Refrescar precios de combustible (MITECO)
+
+# Aislado del resto de refrescos (Mercadona/Dia) — misma razón que siempre:
+# cada fuente tiene su propia fragilidad (ver docs/DECISIONS.md, "Arquitectura
+# para escalar").
+#
+# Sin disparador `schedule` todavía, a propósito: aunque el MITECO no tiene
+# protección anti-bot detectada, primero conviene confirmar a mano ("Run
+# workflow" en Actions) que el upsert por lotes de las ~11.000 estaciones
+# termina bien contra Neon antes de dejarlo desatendido a diario — mismo
+# criterio ya aplicado a Dia.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Aplicar migraciones
+        working-directory: backend
+        env:
+          MERCACHOLLO_DATABASE_URL: ${{ secrets.MERCACHOLLO_DATABASE_URL }}
+        run: alembic upgrade head
+
+      - name: Refrescar gasolineras
+        working-directory: backend
+        env:
+          MERCACHOLLO_DATABASE_URL: ${{ secrets.MERCACHOLLO_DATABASE_URL }}
+        run: python -m app.workers.refresh_fuel_prices
