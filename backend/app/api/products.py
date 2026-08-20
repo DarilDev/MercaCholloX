@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -25,48 +26,44 @@ def _to_product_out(product: Product) -> ProductOut:
 
 @router.get("/chains", response_model=list[str])
 def list_chains(db: Session = Depends(get_db)):
-    """Cadenas con datos cacheados — cada una tiene su propia taxonomía de
-    pasillos/categorías, no tiene sentido mezclarlas al navegar."""
+    """Cadenas con datos cacheados."""
     return known_chains(db)
 
 
 @router.get("/categories", response_model=list[CategoryOut])
-def list_categories(chain: str, db: Session = Depends(get_db)):
-    """Pasillos de una cadena (categorías top-level) con sus subcategorías,
-    para navegar como en una tienda real en vez de buscar por texto libre.
-    Cada cadena tiene su propia taxonomía — mezclarlas no tendría sentido."""
+def list_categories(db: Session = Depends(get_db)):
+    """Pasillos comunes a todas las cadenas (ver services/category_mapping.py)
+    — navegar por pasillo enseña productos de todas las cadenas juntos, para
+    comparar de un vistazo en vez de tener que elegir cadena primero."""
 
     rows = (
-        db.query(Product.top_category, Product.category)
-        .filter(Product.chain == chain, Product.top_category.isnot(None))
-        .distinct()
+        db.query(Product.canonical_category, Product.chain, func.count(Product.id))
+        .filter(Product.canonical_category.isnot(None), Product.current_price.isnot(None))
+        .group_by(Product.canonical_category, Product.chain)
         .all()
     )
 
-    by_top: dict[str, set[str]] = {}
-    for top, sub in rows:
-        by_top.setdefault(top, set()).add(sub)
+    by_category: dict[str, dict[str, int]] = {}
+    for canonical, chain, count in rows:
+        by_category.setdefault(canonical, {})[chain] = count
 
     return [
-        CategoryOut(name=top, subcategories=sorted(subs))
-        for top, subs in sorted(by_top.items())
+        CategoryOut(name=name, chains=chains) for name, chains in sorted(by_category.items())
     ]
 
 
 @router.get("/products", response_model=list[ProductOut])
-def list_products(
-    chain: str,
-    top_category: str | None = None,
-    category: str | None = None,
-    db: Session = Depends(get_db),
-):
-    """Productos de un pasillo/subcategoría de una cadena — navegación tipo supermercado."""
-    query = db.query(Product).filter(Product.chain == chain, Product.current_price.isnot(None))
-    if top_category:
-        query = query.filter(Product.top_category == top_category)
-    if category:
-        query = query.filter(Product.category == category)
-    products = query.order_by(Product.name).limit(200).all()
+def list_products(category: str, db: Session = Depends(get_db)):
+    """Productos de un pasillo común, de todas las cadenas juntos — ordenados
+    por nombre para que productos parecidos de cadenas distintas caigan cerca
+    y se puedan comparar a simple vista."""
+    products = (
+        db.query(Product)
+        .filter(Product.canonical_category == category, Product.current_price.isnot(None))
+        .order_by(Product.name)
+        .limit(300)
+        .all()
+    )
     return [_to_product_out(p) for p in products]
 
 

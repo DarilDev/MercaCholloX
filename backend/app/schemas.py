@@ -17,7 +17,7 @@ class ProductOut(BaseModel):
 
 class CategoryOut(BaseModel):
     name: str
-    subcategories: list[str]
+    chains: dict[str, int]  # cadena -> nº de productos cacheados en este pasillo
 
 
 class FavoriteIn(BaseModel):

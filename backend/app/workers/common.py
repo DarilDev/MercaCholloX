@@ -8,6 +8,7 @@ from typing import Protocol
 from sqlalchemy.orm import Session
 
 from app.models import Product, utcnow
+from app.services.category_mapping import canonical_category
 
 
 class CatalogItem(Protocol):
@@ -26,6 +27,7 @@ def upsert_product(db: Session, chain: str, item: CatalogItem) -> Product:
         .filter(Product.chain == chain, Product.external_id == item.external_id)
         .first()
     )
+    canonical = canonical_category(chain, item.top_category)
     if product is None:
         product = Product(
             chain=chain,
@@ -33,6 +35,7 @@ def upsert_product(db: Session, chain: str, item: CatalogItem) -> Product:
             name=item.name,
             top_category=item.top_category,
             category=item.category,
+            canonical_category=canonical,
             unit=item.unit,
             image_url=item.image_url,
         )
@@ -42,6 +45,7 @@ def upsert_product(db: Session, chain: str, item: CatalogItem) -> Product:
         product.name = item.name
         product.top_category = item.top_category
         product.category = item.category
+        product.canonical_category = canonical
         product.unit = item.unit
         product.image_url = item.image_url
     product.current_price = item.price

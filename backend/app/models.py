@@ -44,8 +44,13 @@ class Product(Base):
     chain: Mapped[str] = mapped_column(String, index=True)
     external_id: Mapped[str] = mapped_column(String, index=True)
     name: Mapped[str] = mapped_column(String, index=True)
-    top_category: Mapped[str | None] = mapped_column(String, index=True, nullable=True)  # "pasillo" (ej. Lácteos)
+    top_category: Mapped[str | None] = mapped_column(String, nullable=True)  # "pasillo" tal cual lo llama la cadena
     category: Mapped[str | None] = mapped_column(String, nullable=True)  # subcategoría dentro del pasillo
+    # Pasillo común entre cadenas (ver services/category_mapping.py) — ej.
+    # "Charcutería y quesos" agrupa el "Charcutería" + "Quesos" separados de
+    # Dia junto con el "Charcutería y quesos" de Mercadona. Es lo que se usa
+    # para navegar; top_category/category quedan como dato crudo de origen.
+    canonical_category: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     unit: Mapped[str | None] = mapped_column(String, nullable=True)
     image_url: Mapped[str | None] = mapped_column(String, nullable=True)
     # Materializado por el worker de refresco al escribir — evita recalcular
