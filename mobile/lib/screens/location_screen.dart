@@ -21,6 +21,7 @@ class _LocationScreenState extends State<LocationScreen> {
   List<NearbyStore> _nearbyStores = [];
   bool _loading = true;
   bool _busy = false;
+  Object? _error;
 
   @override
   void initState() {
@@ -29,14 +30,25 @@ class _LocationScreenState extends State<LocationScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final profile = await _apiClient.getProfile();
     setState(() {
-      _profile = profile;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
-    if (profile.homeLat != null && profile.homeLon != null) {
-      _loadNearbyStores(profile.homeLat!, profile.homeLon!);
+    try {
+      final profile = await _apiClient.getProfile();
+      setState(() {
+        _profile = profile;
+        _loading = false;
+      });
+      if (profile.homeLat != null && profile.homeLon != null) {
+        _loadNearbyStores(profile.homeLat!, profile.homeLon!);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _loading = false;
+      });
     }
   }
 
@@ -142,8 +154,26 @@ class _LocationScreenState extends State<LocationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading || _profile == null) {
+    if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_error != null || _profile == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Casa, trabajo y súper habitual')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Error cargando el perfil: $_error', textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton(onPressed: _load, child: const Text('Reintentar')),
+              ],
+            ),
+          ),
+        ),
+      );
     }
     final profile = _profile!;
     final center = profile.homeLat != null
