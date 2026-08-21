@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/favorite.dart';
+import '../models/product.dart';
 import '../models/profile.dart';
 import '../models/worth_it.dart';
 import '../services/api_client.dart';
@@ -19,6 +22,8 @@ class ShoppingListScreen extends StatefulWidget {
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final _apiClient = ApiClient();
   final _controller = TextEditingController();
+  Timer? _suggestDebounce;
+  List<Product> _suggestions = [];
   Future<List<Favorite>>? _favorites;
   UserProfile? _profile;
   ShoppingComparison? _comparison;
@@ -34,6 +39,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _suggestDebounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
   void _reload() {
     setState(() {
       _favorites = _apiClient.getFavorites();
@@ -42,10 +54,40 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     });
   }
 
+  // Nadie sabe de memoria el nombre exacto del producto — enseñar
+  // coincidencias reales mientras se escribe ayuda a "adivinar" en vez de
+  // tener que acertar el término a ciegas. El favorito sigue guardando el
+  // texto libre (no un producto concreto): tocar una sugerencia solo rellena
+  // el campo, no lo añade directamente, para no perder el matching entre
+  // cadenas ya construido en shopping_list.py.
+  void _onQueryChanged(String text) {
+    _suggestDebounce?.cancel();
+    if (text.trim().length < 2) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    _suggestDebounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final results = await _apiClient.searchProducts(text.trim());
+        if (mounted) setState(() => _suggestions = results.take(5).toList());
+      } catch (_) {
+        // solo son sugerencias — un fallo aquí no debe bloquear añadir a mano
+        if (mounted) setState(() => _suggestions = []);
+      }
+    });
+  }
+
+  void _pickSuggestion(Product product) {
+    _suggestDebounce?.cancel();
+    _controller.text = product.name;
+    setState(() => _suggestions = []);
+  }
+
   Future<void> _add() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     _controller.clear();
+    setState(() => _suggestions = []);
     await _apiClient.addFavorite(text);
     _reload();
   }
@@ -91,18 +133,34 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      labelText: 'Ej. leche entera, aceite de oliva',
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: const InputDecoration(
+                          labelText: 'Ej. leche entera, aceite de oliva',
+                        ),
+                        onChanged: _onQueryChanged,
+                        onSubmitted: (_) => _add(),
+                      ),
                     ),
-                    onSubmitted: (_) => _add(),
+                    IconButton(icon: const Icon(Icons.add), onPressed: _add),
+                  ],
+                ),
+                ..._suggestions.map(
+                  (p) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.search, size: 20),
+                    title: Text(p.name),
+                    subtitle: Text('${p.price != null ? '${p.price!.toStringAsFixed(2)} €' : '-'} · ${p.chain}'),
+                    onTap: () => _pickSuggestion(p),
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.add), onPressed: _add),
               ],
             ),
           ),
