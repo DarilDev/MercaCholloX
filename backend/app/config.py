@@ -15,8 +15,27 @@ class Settings(BaseSettings):
     mercadona_base_url: str = "https://tienda.mercadona.es/api"
     mercadona_default_wh: str = "mad1"  # almacén/código postal por defecto (Madrid)
 
-    overpass_url: str = "https://overpass-api.de/api/interpreter"
-    osrm_url: str = "https://router.project-osrm.org"
+    # Render (plan gratuito) reparte IPs de salida compartidas entre todos sus
+    # clientes de la región — si otro proyecto agota la cuota de una de estas
+    # APIs públicas, la IP compartida queda limitada para todos, no solo para
+    # nosotros (verificado en directo, agosto 2026: /stores/nearby y /worth-it
+    # devolvían vacío en Render para coordenadas con datos reales). Ninguna URL
+    # individual es fiable al 100% por sí sola, así que cada servicio tiene una
+    # lista con respaldo en vez de una única URL.
+    overpass_urls: list[str] = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.private.coffee/api/interpreter",
+    ]
+    osrm_urls: list[str] = [
+        "https://router.project-osrm.org",
+        "https://routing.openstreetmap.de/routed-car",
+    ]
+    # Photon y Nominatim tienen formas de respuesta distintas (GeoJSON vs.
+    # lista plana) — a diferencia de overpass_urls/osrm_urls no tiene sentido
+    # una lista homogénea, se prueba Photon primero (pensado para
+    # autocompletado) y Nominatim como respaldo.
+    photon_url: str = "https://photon.komoot.io/api"
+    nominatim_url: str = "https://nominatim.openstreetmap.org"
     miteco_url: str = (
         "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes"
         "/PreciosCarburantes/EstacionesTerrestres/"

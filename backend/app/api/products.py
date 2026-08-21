@@ -31,35 +31,38 @@ def list_chains(db: Session = Depends(get_db)):
 
 
 @router.get("/categories", response_model=list[CategoryOut])
-def list_categories(db: Session = Depends(get_db)):
-    """Pasillos comunes a todas las cadenas (ver services/category_mapping.py)
-    — navegar por pasillo enseña productos de todas las cadenas juntos, para
-    comparar de un vistazo en vez de tener que elegir cadena primero."""
+def list_categories(chain: str, db: Session = Depends(get_db)):
+    """Pasillos de una cadena, con su propia taxonomía real (top_category) —
+    navegación cadena primero, elegida por Daril en vez del pasillo unificado
+    entre cadenas (ver docs/DECISIONS.md). `canonical_category`/
+    `category_mapping.py` se dejan sin usar por si se recupera esta vista más
+    adelante, no se borran."""
 
     rows = (
-        db.query(Product.canonical_category, Product.chain, func.count(Product.id))
-        .filter(Product.canonical_category.isnot(None), Product.current_price.isnot(None))
-        .group_by(Product.canonical_category, Product.chain)
+        db.query(Product.top_category, func.count(Product.id))
+        .filter(
+            Product.chain == chain,
+            Product.top_category.isnot(None),
+            Product.current_price.isnot(None),
+        )
+        .group_by(Product.top_category)
         .all()
     )
-
-    by_category: dict[str, dict[str, int]] = {}
-    for canonical, chain, count in rows:
-        by_category.setdefault(canonical, {})[chain] = count
-
     return [
-        CategoryOut(name=name, chains=chains) for name, chains in sorted(by_category.items())
+        CategoryOut(name=name, count=count) for name, count in sorted(rows, key=lambda r: r[0])
     ]
 
 
 @router.get("/products", response_model=list[ProductOut])
-def list_products(category: str, db: Session = Depends(get_db)):
-    """Productos de un pasillo común, de todas las cadenas juntos — ordenados
-    por nombre para que productos parecidos de cadenas distintas caigan cerca
-    y se puedan comparar a simple vista."""
+def list_products(chain: str, category: str, db: Session = Depends(get_db)):
+    """Productos de un pasillo de una cadena concreta."""
     products = (
         db.query(Product)
-        .filter(Product.canonical_category == category, Product.current_price.isnot(None))
+        .filter(
+            Product.chain == chain,
+            Product.top_category == category,
+            Product.current_price.isnot(None),
+        )
         .order_by(Product.name)
         .limit(300)
         .all()

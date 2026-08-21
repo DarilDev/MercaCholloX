@@ -17,7 +17,7 @@ class ProductOut(BaseModel):
 
 class CategoryOut(BaseModel):
     name: str
-    chains: dict[str, int]  # cadena -> nº de productos cacheados en este pasillo
+    count: int  # nº de productos cacheados de esta cadena en este pasillo
 
 
 class FavoriteIn(BaseModel):
@@ -88,6 +88,12 @@ class UserProfileOut(BaseModel):
     vehicle_consumption_l_per_100km: float
     fuel_type: str
     hourly_value_eur: float
+
+
+class GeocodeResultOut(BaseModel):
+    label: str
+    lat: float
+    lon: float
 
 
 class WorthItOut(BaseModel):

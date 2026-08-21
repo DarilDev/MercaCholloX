@@ -10,8 +10,18 @@ peticiones repetidas seguidas (406 unas veces, 504 otras, verificado a
 mano) — probablemente por ser un servicio demo/comunitario con carga
 variable, no un fallo del cliente. Se reintenta con backoff en vez de
 tratarlo como un error definitivo a la primera.
+
+Además (verificado en producción, agosto 2026): Render (plan gratuito)
+reparte IPs de salida compartidas entre todos sus clientes de la región —
+si otro proyecto agota la cuota de Overpass, la IP compartida queda
+limitada para todos, incluidos nosotros, sin que sea culpa de nuestro
+propio tráfico. Por eso `settings.overpass_urls` es una lista, no una única
+URL: si la primera está limitada/caída, se prueba la siguiente antes de
+rendirse. Ningún mirror individual tiene garantía de servicio, así que esto
+es solo mitigación, no una solución perfecta.
 """
 
+import logging
 import random
 import time
 from dataclasses import dataclass
@@ -20,7 +30,9 @@ import httpx
 
 from app.config import settings
 
-_MAX_RETRIES = 3
+logger = logging.getLogger(__name__)
+
+_MAX_RETRIES_PER_URL = 2
 _BASE_DELAY_S = 1.5
 
 
@@ -37,22 +49,16 @@ class NearbyStore:
     lon: float
 
 
-def fetch_nearby_supermarkets(lat: float, lon: float, radius_m: int = 3000) -> list[NearbyStore]:
-    query = (
-        "[out:json][timeout:20];"
-        f'(node["shop"="supermarket"](around:{radius_m},{lat},{lon});'
-        f'way["shop"="supermarket"](around:{radius_m},{lat},{lon}););'
-        "out center;"
-    )
-
-    last_error: Exception | None = None
-    resp = None
-    for attempt in range(_MAX_RETRIES):
+def _post_to(url: str, query: str) -> httpx.Response | None:
+    """Prueba una única URL de Overpass con reintento+backoff corto. Devuelve
+    None (nunca lanza) si esa URL en concreto falla — quien llama decide si
+    pasar a la siguiente URL de la lista."""
+    for attempt in range(_MAX_RETRIES_PER_URL):
         if attempt > 0:
             time.sleep(_BASE_DELAY_S * (2**attempt) + random.uniform(0, 0.5))
         try:
             resp = httpx.post(
-                settings.overpass_url,
+                url,
                 data={"data": query},
                 # Verificado a mano: el Apache de Overpass devuelve 406 si el
                 # User-Agent imita un navegador (ej. "Mozilla/5.0 (...)") —
@@ -67,12 +73,29 @@ def fetch_nearby_supermarkets(lat: float, lon: float, radius_m: int = 3000) -> l
                 timeout=25.0,
             )
             resp.raise_for_status()
-            break
+            return resp
         except httpx.HTTPError as exc:
-            last_error = exc
-            resp = None
-    else:
-        raise OverpassClientError(f"Overpass falló tras {_MAX_RETRIES} intentos: {last_error}")
+            logger.warning("Overpass (%s) falló intento %d: %s", url, attempt + 1, exc)
+    return None
+
+
+def fetch_nearby_supermarkets(lat: float, lon: float, radius_m: int = 3000) -> list[NearbyStore]:
+    query = (
+        "[out:json][timeout:20];"
+        f'(node["shop"="supermarket"](around:{radius_m},{lat},{lon});'
+        f'way["shop"="supermarket"](around:{radius_m},{lat},{lon}););'
+        "out center;"
+    )
+
+    resp = None
+    for url in settings.overpass_urls:
+        resp = _post_to(url, query)
+        if resp is not None:
+            break
+    if resp is None:
+        raise OverpassClientError(
+            f"Overpass falló en las {len(settings.overpass_urls)} URLs configuradas"
+        )
 
     data = resp.json()
     stores: list[NearbyStore] = []

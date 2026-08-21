@@ -5,13 +5,20 @@ from app.db import get_db
 from app.models import Store
 from app.schemas import StoreOut
 from app.services import overpass_client
+from app.services.chain_aliases import normalize_chain_name
 from app.services.geo import haversine_km
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
 
 def _upsert_store(db: Session, item: overpass_client.NearbyStore) -> Store:
-    chain = (item.brand or item.name).strip().lower()
+    raw_chain = (item.brand or item.name).strip().lower()
+    # Normalizado a la cadena canónica cuando la reconocemos (mercadona/dia)
+    # — así worth_it.py puede reutilizar esta caché sin volver a llamar a
+    # Overpass. Las cadenas que no trackeamos todavía (Carrefour, HiperDino...)
+    # se guardan con su nombre real tal cual, para seguir mostrándolas en
+    # "súper cercanos" aunque no tengamos precios suyos.
+    chain = normalize_chain_name(raw_chain) or raw_chain
     store = (
         db.query(Store)
         .filter(Store.chain == chain, Store.external_id == item.external_id)

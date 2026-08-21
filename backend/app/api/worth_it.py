@@ -36,7 +36,34 @@ def _nearest_fuel_price(db: Session, lat: float, lon: float, fuel_type: str) -> 
     return getattr(nearest, fuel_type)
 
 
-def _nearest_candidate_store(lat: float, lon: float, chain: str) -> tuple[float, float] | None:
+# Caja grosera antes del haversine exacto (mismo criterio que _nearest_fuel_price)
+_CANDIDATE_BOX_DEG = 0.1  # ~11km
+
+
+def _cached_candidate_store(db: Session, lat: float, lon: float, chain: str) -> tuple[float, float] | None:
+    """Reutiliza tiendas ya cacheadas en `stores` (rellenada cada vez que
+    alguien visita Ubicación/`/stores/nearby`) antes de llamar a Overpass en
+    vivo — reduce cuánto dependemos de un servicio público con IP compartida
+    en Render para el caso común (usuario que ya vio su zona una vez)."""
+    candidates = (
+        db.query(Store)
+        .filter(Store.lat.isnot(None), Store.lon.isnot(None))
+        .filter(Store.lat.between(lat - _CANDIDATE_BOX_DEG, lat + _CANDIDATE_BOX_DEG))
+        .filter(Store.lon.between(lon - _CANDIDATE_BOX_DEG, lon + _CANDIDATE_BOX_DEG))
+        .all()
+    )
+    matches = [s for s in candidates if normalize_chain_name(s.chain) == chain]
+    if not matches:
+        return None
+    nearest = min(matches, key=lambda s: haversine_km(lat, lon, s.lat, s.lon))
+    return nearest.lat, nearest.lon
+
+
+def _nearest_candidate_store(db: Session, lat: float, lon: float, chain: str) -> tuple[float, float] | None:
+    cached = _cached_candidate_store(db, lat, lon, chain)
+    if cached is not None:
+        return cached
+
     try:
         nearby = overpass_client.fetch_nearby_supermarkets(lat, lon, radius_m=_CANDIDATE_RADIUS_M)
     except overpass_client.OverpassClientError:
@@ -84,7 +111,7 @@ def worth_it(user: CurrentUser, db: Session = Depends(get_db)):
         if chain == usual_chain:
             continue
 
-        candidate = _nearest_candidate_store(profile.home_lat, profile.home_lon, chain)
+        candidate = _nearest_candidate_store(db, profile.home_lat, profile.home_lon, chain)
         if candidate is None:
             continue
         cand_lat, cand_lon = candidate
