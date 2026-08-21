@@ -32,8 +32,15 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_MAX_RETRIES_PER_URL = 2
+# Verificado en producción (agosto 2026): un 429/504 sostenido por límite de
+# cuota no se arregla reintentando la misma URL a los pocos segundos (Overpass
+# exige una pausa de 30s tras un 429) — con varias URLs de respaldo en la
+# lista, probar la siguiente URL vale más que insistir en la misma. Un único
+# intento por URL, con timeout corto, para no acumular varios minutos de
+# espera si fallan varias seguidas.
+_MAX_RETRIES_PER_URL = 1
 _BASE_DELAY_S = 1.5
+_TIMEOUT_S = 12.0
 
 
 class OverpassClientError(Exception):
@@ -70,7 +77,7 @@ def _post_to(url: str, query: str) -> httpx.Response | None:
                     "Accept": "*/*",
                     "Accept-Encoding": "identity",
                 },
-                timeout=25.0,
+                timeout=_TIMEOUT_S,
             )
             resp.raise_for_status()
             return resp

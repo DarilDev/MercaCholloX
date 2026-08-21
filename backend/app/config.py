@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     # lista con respaldo en vez de una única URL.
     overpass_urls: list[str] = [
         "https://overpass-api.de/api/interpreter",
+        "https://lz4.overpass-api.de/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
         "https://overpass.private.coffee/api/interpreter",
     ]
     osrm_urls: list[str] = [
