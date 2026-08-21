@@ -155,7 +155,28 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   (p) => ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.search, size: 20),
+                    leading: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: p.imageUrl != null
+                          ? Image.network(
+                              p.imageUrl!,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stack) =>
+                                  const Icon(Icons.image_not_supported_outlined, size: 20),
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return const Center(
+                                  child: SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                );
+                              },
+                            )
+                          : const Icon(Icons.shopping_basket_outlined, size: 20),
+                    ),
                     title: Text(p.name),
                     subtitle: Text('${p.price != null ? '${p.price!.toStringAsFixed(2)} €' : '-'} · ${p.chain}'),
                     onTap: () => _pickSuggestion(p),
