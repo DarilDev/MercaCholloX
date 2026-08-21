@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.api import debug, favorites, geocode, products, profile, stores, worth_it
+from app.api import favorites, geocode, products, profile, stores, worth_it
 
 # El esquema de la base de datos lo gestiona Alembic (`alembic upgrade head`),
 # no un create_all() al arrancar — así no hay dos mecanismos de creación de
@@ -13,7 +13,6 @@ app.include_router(profile.router)
 app.include_router(stores.router)
 app.include_router(worth_it.router)
 app.include_router(geocode.router)
-app.include_router(debug.router)
 
 
 @app.get("/health")

@@ -24,6 +24,7 @@ class User(Base):
 
 class Store(Base):
     __tablename__ = "stores"
+    __table_args__ = (UniqueConstraint("chain", "external_id", name="uq_store_chain_external_id"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     chain: Mapped[str] = mapped_column(String, index=True)  # "mercadona", "dia" (fase 4)
