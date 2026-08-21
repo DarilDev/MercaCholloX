@@ -1,0 +1,57 @@
+"""Endpoint de diagnóstico temporal — investigar por qué Overpass falla
+desde Render (todas las URLs configuradas fallaron, 49.7s, sin datos).
+Prueba cada URL configurada de Overpass/OSRM directamente y devuelve el
+error real de cada una, en vez de solo "vacío" como ven los endpoints
+normales. Se borra en cuanto se identifique la causa."""
+
+import httpx
+from fastapi import APIRouter
+
+from app.config import settings
+
+router = APIRouter(prefix="/debug", tags=["debug"])
+
+
+@router.get("/overpass-check")
+def overpass_check():
+    results = []
+    for url in settings.overpass_urls:
+        entry = {"url": url}
+        try:
+            resp = httpx.post(
+                url,
+                data={"data": '[out:json][timeout:10];node["shop"="supermarket"](around:2000,40.4168,-3.7038);out;'},
+                headers={
+                    "User-Agent": "MercaChollo/1.0 (proyecto personal, sin fines comerciales)",
+                    "Accept": "*/*",
+                    "Accept-Encoding": "identity",
+                },
+                timeout=12.0,
+            )
+            entry["status_code"] = resp.status_code
+            entry["body_preview"] = resp.text[:200]
+        except Exception as exc:
+            entry["error_type"] = type(exc).__name__
+            entry["error"] = str(exc)
+        results.append(entry)
+    return {"overpass_urls": results}
+
+
+@router.get("/osrm-check")
+def osrm_check():
+    results = []
+    for base_url in settings.osrm_urls:
+        entry = {"url": base_url}
+        try:
+            resp = httpx.get(
+                f"{base_url}/route/v1/driving/-3.7038,40.4168;-3.7065,40.4146",
+                params={"overview": "false"},
+                timeout=12.0,
+            )
+            entry["status_code"] = resp.status_code
+            entry["body_preview"] = resp.text[:200]
+        except Exception as exc:
+            entry["error_type"] = type(exc).__name__
+            entry["error"] = str(exc)
+        results.append(entry)
+    return {"osrm_urls": results}
