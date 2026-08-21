@@ -12,27 +12,42 @@ from app.config import settings
 router = APIRouter(prefix="/debug", tags=["debug"])
 
 
+_REAL_QUERY = (
+    "[out:json][timeout:20];"
+    '(node["shop"="supermarket"](around:5000,40.4168,-3.7038);'
+    'way["shop"="supermarket"](around:5000,40.4168,-3.7038););'
+    "out center;"
+)
+
+
 @router.get("/overpass-check")
 def overpass_check():
+    """Usa la MISMA query que overpass_client.py de verdad (way+node,
+    out center, 5000m) — la primera versión de este endpoint usaba una query
+    más simple y daba resultados distintos a los del endpoint real."""
     results = []
     for url in settings.overpass_urls:
         entry = {"url": url}
+        import time as _time
+
+        started = _time.monotonic()
         try:
             resp = httpx.post(
                 url,
-                data={"data": '[out:json][timeout:10];node["shop"="supermarket"](around:2000,40.4168,-3.7038);out;'},
+                data={"data": _REAL_QUERY},
                 headers={
                     "User-Agent": "MercaChollo/1.0 (proyecto personal, sin fines comerciales)",
                     "Accept": "*/*",
                     "Accept-Encoding": "identity",
                 },
-                timeout=12.0,
+                timeout=25.0,
             )
             entry["status_code"] = resp.status_code
-            entry["body_preview"] = resp.text[:200]
+            entry["elements"] = len(resp.json().get("elements", [])) if resp.status_code == 200 else None
         except Exception as exc:
             entry["error_type"] = type(exc).__name__
             entry["error"] = str(exc)
+        entry["seconds"] = round(_time.monotonic() - started, 2)
         results.append(entry)
     return {"overpass_urls": results}
 
