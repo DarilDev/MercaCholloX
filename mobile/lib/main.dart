@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/home_shell.dart';
+import 'theme.dart';
 
 void main() {
   runApp(const MercaCholloApp());
@@ -13,7 +14,7 @@ class MercaCholloApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MercaChollo',
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.green)),
+      theme: buildAppTheme(),
       home: const HomeShell(),
     );
   }

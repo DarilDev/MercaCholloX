@@ -3,9 +3,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../models/geocode_result.dart';
 import '../models/profile.dart';
 import '../models/store.dart';
 import '../services/api_client.dart';
+import '../theme.dart';
+import '../widgets/address_search_field.dart';
+import '../widgets/loading_view.dart';
 
 class LocationScreen extends StatefulWidget {
   const LocationScreen({super.key});
@@ -83,27 +87,45 @@ class _LocationScreenState extends State<LocationScreen> {
     );
   }
 
+  Future<void> _setHome(double lat, double lon) async {
+    if (_profile == null) return;
+    final updated = _profile!.copyWith(homeLat: lat, homeLon: lon);
+    final saved = await _apiClient.updateProfile(updated);
+    setState(() => _profile = saved);
+    await _loadNearbyStores(lat, lon);
+    _mapController.move(LatLng(lat, lon), 14);
+  }
+
+  Future<void> _setWork(double lat, double lon) async {
+    if (_profile == null) return;
+    final updated = _profile!.copyWith(workLat: lat, workLon: lon);
+    final saved = await _apiClient.updateProfile(updated);
+    setState(() => _profile = saved);
+  }
+
   Future<void> _setHomeToCurrentLocation() async {
     setState(() => _busy = true);
     final position = await _getCurrentPosition();
-    if (position != null && _profile != null) {
-      final updated = _profile!.copyWith(homeLat: position.latitude, homeLon: position.longitude);
-      final saved = await _apiClient.updateProfile(updated);
-      setState(() => _profile = saved);
-      await _loadNearbyStores(position.latitude, position.longitude);
-      _mapController.move(LatLng(position.latitude, position.longitude), 14);
-    }
+    if (position != null) await _setHome(position.latitude, position.longitude);
     if (mounted) setState(() => _busy = false);
   }
 
   Future<void> _setWorkToCurrentLocation() async {
     setState(() => _busy = true);
     final position = await _getCurrentPosition();
-    if (position != null && _profile != null) {
-      final updated = _profile!.copyWith(workLat: position.latitude, workLon: position.longitude);
-      final saved = await _apiClient.updateProfile(updated);
-      setState(() => _profile = saved);
-    }
+    if (position != null) await _setWork(position.latitude, position.longitude);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  Future<void> _setHomeFromAddress(GeocodeResult result) async {
+    setState(() => _busy = true);
+    await _setHome(result.lat, result.lon);
+    if (mounted) setState(() => _busy = false);
+  }
+
+  Future<void> _setWorkFromAddress(GeocodeResult result) async {
+    setState(() => _busy = true);
+    await _setWork(result.lat, result.lon);
     if (mounted) setState(() => _busy = false);
   }
 
@@ -144,7 +166,7 @@ class _LocationScreenState extends State<LocationScreen> {
         height: 30,
         child: Icon(
           isUsual ? Icons.star : Icons.storefront,
-          color: isUsual ? Colors.amber : Colors.green,
+          color: isUsual ? AppColors.starred : AppColors.success,
           size: isUsual ? 28 : 22,
         ),
       ));
@@ -155,7 +177,7 @@ class _LocationScreenState extends State<LocationScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: LoadingView());
     }
     if (_error != null || _profile == null) {
       return Scaffold(
@@ -217,6 +239,8 @@ class _LocationScreenState extends State<LocationScreen> {
                           child: const Text('Usar mi ubicación'),
                         ),
                 ),
+                AddressSearchField(label: 'O escribe la dirección de casa', onSelected: _setHomeFromAddress),
+                const SizedBox(height: AppSpacing.md),
                 ListTile(
                   leading: const Icon(Icons.work_outline),
                   title: const Text('Trabajo (opcional)'),
@@ -232,6 +256,7 @@ class _LocationScreenState extends State<LocationScreen> {
                           child: const Text('Usar mi ubicación'),
                         ),
                 ),
+                AddressSearchField(label: 'O escribe la dirección del trabajo', onSelected: _setWorkFromAddress),
                 const Divider(height: 32),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -243,14 +268,14 @@ class _LocationScreenState extends State<LocationScreen> {
                 else if (_nearbyStores.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: LoadingView(),
                   )
                 else
                   ..._nearbyStores.map((store) {
                     final isUsual = store.id == profile.usualStoreId;
                     return ListTile(
                       leading: Icon(isUsual ? Icons.star : Icons.storefront_outlined,
-                          color: isUsual ? Colors.amber : null),
+                          color: isUsual ? AppColors.starred : null),
                       title: Text(store.name),
                       subtitle: Text('${store.chain} · ${store.distanceKm} km'),
                       trailing: isUsual

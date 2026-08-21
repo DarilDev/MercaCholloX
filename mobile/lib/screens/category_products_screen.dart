@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../models/product.dart';
 import '../services/api_client.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
 import '../widgets/product_tile.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
+  final String chain;
   final String category;
 
-  const CategoryProductsScreen({super.key, required this.category});
+  const CategoryProductsScreen({super.key, required this.chain, required this.category});
 
   @override
   State<CategoryProductsScreen> createState() => _CategoryProductsScreenState();
@@ -20,7 +23,11 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
   @override
   void initState() {
     super.initState();
-    _products = _apiClient.getProducts(widget.category);
+    _load();
+  }
+
+  void _load() {
+    setState(() => _products = _apiClient.getProducts(widget.chain, widget.category));
   }
 
   void _addToList(Product product) async {
@@ -39,10 +46,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         future: _products,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingView();
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return ErrorView(error: snapshot.error!, onRetry: _load);
           }
           final products = snapshot.data ?? [];
           if (products.isEmpty) {

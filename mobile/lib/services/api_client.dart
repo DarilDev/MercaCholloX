@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/category.dart';
 import '../models/favorite.dart';
+import '../models/geocode_result.dart';
 import '../models/product.dart';
 import '../models/profile.dart';
 import '../models/store.dart';
@@ -44,16 +45,26 @@ class ApiClient {
     return data.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<List<SupermarketCategory>> getCategories() async {
-    final data = await _get('/categories') as List<dynamic>;
+  Future<List<String>> getChains() async {
+    final data = await _get('/chains') as List<dynamic>;
+    return data.cast<String>();
+  }
+
+  Future<List<SupermarketCategory>> getCategories(String chain) async {
+    final data = await _get('/categories', {'chain': chain}) as List<dynamic>;
     return data
         .map((e) => SupermarketCategory.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
-  Future<List<Product>> getProducts(String category) async {
-    final data = await _get('/products', {'category': category}) as List<dynamic>;
+  Future<List<Product>> getProducts(String chain, String category) async {
+    final data = await _get('/products', {'chain': chain, 'category': category}) as List<dynamic>;
     return data.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<GeocodeResult>> geocode(String query) async {
+    final data = await _get('/geocode', {'q': query}) as List<dynamic>;
+    return data.map((e) => GeocodeResult.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<List<Favorite>> getFavorites() async {

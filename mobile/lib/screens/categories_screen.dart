@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/category.dart';
 import '../services/api_client.dart';
-import 'category_products_screen.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
+import 'chain_categories_screen.dart';
 import 'settings_screen.dart';
 
 class CategoriesScreen extends StatefulWidget {
@@ -14,12 +15,16 @@ class CategoriesScreen extends StatefulWidget {
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
   final _apiClient = ApiClient();
-  late Future<List<SupermarketCategory>> _categories;
+  late Future<List<String>> _chains;
 
   @override
   void initState() {
     super.initState();
-    _categories = _apiClient.getCategories();
+    _load();
+  }
+
+  void _load() {
+    setState(() => _chains = _apiClient.getChains());
   }
 
   @override
@@ -37,38 +42,31 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<SupermarketCategory>>(
-        future: _categories,
+      body: FutureBuilder<List<String>>(
+        future: _chains,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const LoadingView();
           }
           if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text('Error cargando pasillos: ${snapshot.error}'),
-              ),
-            );
+            return ErrorView(error: snapshot.error!, onRetry: _load);
           }
-          final categories = snapshot.data ?? [];
-          if (categories.isEmpty) {
-            return const Center(child: Text('Todavía no hay pasillos con datos'));
+          final chains = snapshot.data ?? [];
+          if (chains.isEmpty) {
+            return const Center(child: Text('Todavía no hay cadenas con datos'));
           }
           return ListView.builder(
-            itemCount: categories.length,
+            itemCount: chains.length,
             itemBuilder: (context, index) {
-              final cat = categories[index];
-              final breakdown = cat.chains.entries.map((e) => '${e.value} en ${e.key}').join(' · ');
+              final chain = chains[index];
               return ListTile(
                 leading: const Icon(Icons.storefront_outlined),
-                title: Text(cat.name),
-                subtitle: Text(breakdown),
+                title: Text(_capitalize(chain)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CategoryProductsScreen(category: cat.name),
+                    builder: (_) => ChainCategoriesScreen(chain: chain),
                   ),
                 ),
               );
@@ -79,3 +77,5 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 }
+
+String _capitalize(String s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';

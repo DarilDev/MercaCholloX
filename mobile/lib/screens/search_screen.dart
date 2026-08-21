@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/product.dart';
 import '../services/api_client.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
 import '../widgets/product_tile.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -70,10 +72,10 @@ class _SearchScreenState extends State<SearchScreen> {
       future: _results,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingView();
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return ErrorView(error: snapshot.error!, onRetry: _search);
         }
         final products = snapshot.data ?? [];
         if (products.isEmpty) {

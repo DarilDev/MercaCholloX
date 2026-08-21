@@ -4,6 +4,9 @@ import '../models/favorite.dart';
 import '../models/profile.dart';
 import '../models/worth_it.dart';
 import '../services/api_client.dart';
+import '../theme.dart';
+import '../widgets/error_view.dart';
+import '../widgets/loading_view.dart';
 import '../widgets/worth_it_card.dart';
 
 class ShoppingListScreen extends StatefulWidget {
@@ -133,15 +136,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       future: _favorites,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const LoadingView();
         }
         if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text('Error cargando la lista: ${snapshot.error}'),
-            ),
-          );
+          return ErrorView(error: snapshot.error!, onRetry: _reload);
         }
         final favorites = snapshot.data ?? [];
         if (favorites.isEmpty) {
@@ -206,7 +204,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 ),
                 if (isCheapest) ...[
                   const SizedBox(width: 6),
-                  const Icon(Icons.emoji_events, color: Colors.amber, size: 18),
+                  const Icon(Icons.emoji_events, color: AppColors.starred, size: 18),
                 ],
               ],
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/backend_config.dart';
 import '../services/device_identity.dart';
+import '../widgets/loading_view.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,7 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Ajustes')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingView()
           : Padding(
               padding: const EdgeInsets.all(16),
               child: Column(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/worth_it.dart';
+import '../theme.dart';
 
 String _capitalize(String s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 
@@ -18,7 +19,7 @@ class WorthItCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = result.worthIt ? Colors.green.shade600 : Colors.grey.shade600;
+    final color = result.worthIt ? AppColors.success : Colors.grey.shade600;
     final chainName = _capitalize(result.chain);
 
     return Card(
@@ -103,7 +104,7 @@ class WorthItCard extends StatelessWidget {
           Expanded(child: Text(label, style: style)),
           Text(
             '${value >= 0 ? '+' : ''}${_eur(value)}',
-            style: style.copyWith(color: value < 0 ? Colors.red.shade700 : Colors.green.shade700),
+            style: style.copyWith(color: value < 0 ? AppColors.danger : AppColors.success),
           ),
         ],
       ),
