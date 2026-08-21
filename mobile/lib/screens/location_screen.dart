@@ -25,7 +25,9 @@ class _LocationScreenState extends State<LocationScreen> {
   List<NearbyStore> _nearbyStores = [];
   bool _loading = true;
   bool _busy = false;
+  bool _nearbyLoading = false;
   Object? _error;
+  Object? _nearbyError;
 
   @override
   void initState() {
@@ -57,9 +59,20 @@ class _LocationScreenState extends State<LocationScreen> {
   }
 
   Future<void> _loadNearbyStores(double lat, double lon) async {
-    final stores = await _apiClient.getNearbyStores(lat, lon);
-    if (!mounted) return;
-    setState(() => _nearbyStores = stores);
+    setState(() {
+      _nearbyLoading = true;
+      _nearbyError = null;
+    });
+    try {
+      final stores = await _apiClient.getNearbyStores(lat, lon);
+      if (!mounted) return;
+      setState(() => _nearbyStores = stores);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _nearbyError = e);
+    } finally {
+      if (mounted) setState(() => _nearbyLoading = false);
+    }
   }
 
   Future<Position?> _getCurrentPosition() async {
@@ -265,11 +278,27 @@ class _LocationScreenState extends State<LocationScreen> {
                 const SizedBox(height: 8),
                 if (profile.homeLat == null)
                   const Text('Fija tu casa para ver los súper cercanos de verdad.')
-                else if (_nearbyStores.isEmpty)
+                else if (_nearbyError != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Column(
+                      children: [
+                        Text('Error buscando súper cercanos: $_nearbyError', textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: () => _loadNearbyStores(profile.homeLat!, profile.homeLon!),
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_nearbyLoading)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: LoadingView(),
                   )
+                else if (_nearbyStores.isEmpty)
+                  const Text('Sin súper cercanos cacheados todavía en esta zona.')
                 else
                   ..._nearbyStores.map((store) {
                     final isUsual = store.id == profile.usualStoreId;
