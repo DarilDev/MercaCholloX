@@ -74,12 +74,19 @@ def list_products(chain: str, category: str, db: Session = Depends(get_db)):
 def search_products(q: str = Query(min_length=2), db: Session = Depends(get_db)):
     """Busca por substring en la caché local, entre todas las cadenas — a
     diferencia de la navegación por pasillos, aquí sí tiene sentido comparar
-    a simple vista qué hay en cada una (la ficha ya indica la cadena)."""
+    a simple vista qué hay en cada una (la ficha ya indica la cadena).
+
+    Ordenado por relevancia (menos palabras de más en el nombre, mismo
+    criterio ya usado en el matching de favoritos de shopping_list.py) en
+    vez de alfabético — alfabético enterraba los productos reales bajo
+    coincidencias parciales (ej. "aceite" solo enseñaba cosméticos tipo
+    "Aceite bruma protectora Sunnique" antes que aceite de oliva de verdad,
+    porque "bruma" va antes que "de" alfabéticamente)."""
     products = (
         db.query(Product)
         .filter(Product.current_price.isnot(None), Product.name.ilike(f"%{q}%"))
-        .order_by(Product.name)
-        .limit(50)
+        .limit(500)
         .all()
     )
-    return [_to_product_out(p) for p in products]
+    products.sort(key=lambda p: len(p.name.split()))
+    return [_to_product_out(p) for p in products[:50]]
