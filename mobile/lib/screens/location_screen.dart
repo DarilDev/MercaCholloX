@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 
 import '../models/geocode_result.dart';
 import '../models/profile.dart';
@@ -20,7 +18,6 @@ class LocationScreen extends StatefulWidget {
 
 class _LocationScreenState extends State<LocationScreen> {
   final _apiClient = ApiClient();
-  final _mapController = MapController();
   UserProfile? _profile;
   List<NearbyStore> _nearbyStores = [];
   bool _loading = true;
@@ -106,7 +103,6 @@ class _LocationScreenState extends State<LocationScreen> {
     final saved = await _apiClient.updateProfile(updated);
     setState(() => _profile = saved);
     await _loadNearbyStores(lat, lon);
-    _mapController.move(LatLng(lat, lon), 14);
   }
 
   Future<void> _setWork(double lat, double lon) async {
@@ -153,40 +149,6 @@ class _LocationScreenState extends State<LocationScreen> {
     );
   }
 
-  List<Marker> _buildMarkers(UserProfile profile) {
-    final markers = <Marker>[];
-    if (profile.homeLat != null && profile.homeLon != null) {
-      markers.add(Marker(
-        point: LatLng(profile.homeLat!, profile.homeLon!),
-        width: 36,
-        height: 36,
-        child: const Icon(Icons.home, color: Colors.blue, size: 32),
-      ));
-    }
-    if (profile.workLat != null && profile.workLon != null) {
-      markers.add(Marker(
-        point: LatLng(profile.workLat!, profile.workLon!),
-        width: 36,
-        height: 36,
-        child: const Icon(Icons.work, color: Colors.deepOrange, size: 30),
-      ));
-    }
-    for (final store in _nearbyStores) {
-      final isUsual = store.id == profile.usualStoreId;
-      markers.add(Marker(
-        point: LatLng(store.lat, store.lon),
-        width: 30,
-        height: 30,
-        child: Icon(
-          isUsual ? Icons.star : Icons.storefront,
-          color: isUsual ? AppColors.starred : AppColors.success,
-          size: isUsual ? 28 : 22,
-        ),
-      ));
-    }
-    return markers;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -211,28 +173,11 @@ class _LocationScreenState extends State<LocationScreen> {
       );
     }
     final profile = _profile!;
-    final center = profile.homeLat != null
-        ? LatLng(profile.homeLat!, profile.homeLon!)
-        : const LatLng(40.4168, -3.7038); // Madrid, por defecto sin casa fijada
 
     return Scaffold(
       appBar: AppBar(title: const Text('Casa, trabajo y súper habitual')),
       body: ListView(
         children: [
-          SizedBox(
-            height: 260,
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(initialCenter: center, initialZoom: 14),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.mercachollo.mercachollo',
-                ),
-                MarkerLayer(markers: _buildMarkers(profile)),
-              ],
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
