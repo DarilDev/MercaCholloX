@@ -5,7 +5,31 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 ## [Sin publicar]
 
 ### En curso
-- Fase 5: motor de scoring "vale la pena el desvío" (MITECO + OSRM + fórmula de ahorro neto).
+- Próxima cadena tras Dia: HiperDino (Magento, prometedor) y Alcampo (bloqueado por AWS WAF/CAPTCHA) investigados en directo pero sin construir todavía — hace falta una sesión dedicada a inspeccionar peticiones reales, no adivinar más endpoints.
+
+### Añadido — 2026-08-22
+- **Historial de precios**: la tabla `prices` (append-only desde el diseño inicial) se usa por fin de verdad — ficha de producto nueva con gráfico (`fl_chart`) y una etiqueta que distingue una bajada real de "el mismo precio de siempre" (compara contra la media de 30 días). Verificado en el móvil real con datos reales.
+- **Escáner de código de barras** estilo Yuka: Nutri-Score, nivel de procesado NOVA y aditivos vía OpenFoodFacts (`GET /products/scan/{ean}`), con el precio real de la caché si el producto coincide. Pestaña "Escanear" nueva, empujada como ruta aparte del `IndexedStack` para no mantener la cámara encendida de fondo en el resto de pestañas.
+- **Historial de escaneos**: los últimos 50 escaneos con éxito quedan guardados por dispositivo, para añadirlos a la lista más tarde sin volver a escanear. Botón "Añadir a mi lista" tanto en el resultado de un escaneo como en el historial.
+- Bug real reportado por Daril probando en directo: el escáner "confundía" productos de cadenas sin integrar (ej. Lidl) con precios de Mercadona que no tenían nada que ver — el matching anclaba en la primera palabra del nombre y enganchaba cualquier producto que la compartiera. Corregido exigiendo todas las palabras significativas (extraído a `text_matching.py`, compartido con el matching de favoritos) — sin coincidencia es preferible a una coincidencia falsa.
+- **App más ligera**: `minifyEnabled`/`shrinkResources` y build partido por ABI, que no estaban activados — el APK universal no encogía código ni recursos. El APK que de verdad se instala en un móvil real (arm64) pasó de 54.0MB a 25.8MB, medido antes/después.
+- Investigado (sin construir): próxima cadena tras Dia — ver "En curso" arriba. Confirmado también que Lidl tiene presencia real en OpenFoodFacts a nivel global (no solo las cadenas ya integradas).
+
+### Añadido — 2026-08-21
+- **Fiabilidad real en producción**: Overpass y OSRM fallaban de forma intermitente en Render porque el plan gratuito reparte una IP de salida compartida entre todos sus clientes — si otro proyecto agotaba la cuota de una API pública, la IP compartida quedaba limitada para todos. Arreglado con una lista de mirrors de respaldo por servicio (un intento por URL, no reintentar la misma contra un 429).
+- **Causa real del cuelgue de `/stores/nearby` y `/worth-it`**: escribían las tiendas encontradas una a una contra Neon en vez de en lote. Con `UNIQUE(chain, external_id)` + upsert por lotes, 453 tiendas pasaron de tardar más de 90s a 9.5s (y a ~1s sirviendo desde caché local).
+- Permiso `INTERNET` que faltaba en `AndroidManifest.xml` — causaba "Failed host lookup" en toda petición de red del móvil.
+- **Navegación cadena primero**, revirtiendo el intento de pasillo unificado del día anterior — decisión explícita de Daril: en Canarias no hay Dia, así que Aldi/Lidl/Carrefour/Alcampo deben priorizarse, y prefiere navegar cadena → dentro, productos, no una lista mezclada.
+- Campo de dirección escribible (`AddressSearchField`, Photon con Nominatim de respaldo) en Ubicación — antes solo se podía fijar casa/trabajo por GPS.
+- Tema compartido (`theme.dart`, `LoadingView`, `ErrorView`) sustituyendo ~7 implementaciones sueltas de carga/error.
+- `/products/search` ordenaba alfabéticamente y enterraba productos reales bajo coincidencias parciales (ej. cosméticos antes que aceite de oliva de verdad) — ahora ordena por relevancia (menos palabras de más), mismo criterio que el matching de favoritos.
+- Buscador y sugerencias de "Mi lista" en vivo (con debounce y foto real del producto) en vez de exigir el término exacto sin pistas visuales.
+- Ubicación se quedaba cargando para siempre si fallaba la carga de súper cercanos — sin manejo de errores.
+
+### Añadido — 2026-08-20
+- **Fase 5: motor "vale la pena el desvío"** — compara la cadena habitual contra otra con mejor precio en la cesta, restando el coste de gasolina (MITECO) y de tiempo del desvío (OSRM); tarjeta de veredicto en la app con desglose expandible.
+- Pasillos separados por cadena (antes mezclaba taxonomías de Mercadona y Dia) y mapa real (`flutter_map`) en Ubicación con casa/trabajo/súper cercanos.
+- Mostrar el error real en vez de quedarse en "vacío" o colgado cuando falla la carga de cadenas o de la lista de favoritos.
 
 ### Añadido — 2026-08-19 (madrugada)
 - Navegación por pasillos separada por cadena: `/categories` y `/products` ahora requieren `chain`, más un endpoint `GET /chains`. Antes mezclaba la taxonomía de Mercadona y Dia en la misma lista de "Pasillos" (49 entradas sin sentido) — ahora hay un selector arriba de la pantalla.
