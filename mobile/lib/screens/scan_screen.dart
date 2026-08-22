@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../utils/add_to_list.dart';
 import '../widgets/error_view.dart';
 import '../widgets/product_tile.dart';
+import '../widgets/scan_overlay.dart';
 import 'product_detail_screen.dart';
 import 'scan_history_screen.dart';
 
@@ -82,20 +83,48 @@ class _ScanScreenState extends State<ScanScreen> {
           ),
         ],
       ),
-      body: MobileScanner(
-        controller: _controller,
-        onDetect: _onDetect,
-        errorBuilder: (context, error) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Text(
-              error.errorCode == MobileScannerErrorCode.permissionDenied
-                  ? 'MercaChollo necesita permiso de cámara para escanear.'
-                  : 'No se pudo abrir la cámara.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = constraints.biggest;
+          final windowWidth = size.width * 0.8;
+          final scanWindow = Rect.fromCenter(
+            center: size.center(Offset.zero),
+            width: windowWidth,
+            height: windowWidth * 0.55,
+          );
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
+                controller: _controller,
+                scanWindow: scanWindow,
+                onDetect: _onDetect,
+                errorBuilder: (context, error) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Text(
+                      error.errorCode == MobileScannerErrorCode.permissionDenied
+                          ? 'MercaChollo necesita permiso de cámara para escanear.'
+                          : 'No se pudo abrir la cámara.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+              ScanOverlay(scanWindow: scanWindow),
+              Positioned(
+                top: scanWindow.bottom + AppSpacing.md,
+                left: 0,
+                right: 0,
+                child: const Text(
+                  'Apunta al código de barras',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
