@@ -5,6 +5,7 @@ import '../services/api_client.dart';
 import '../widgets/error_view.dart';
 import '../widgets/loading_view.dart';
 import '../widgets/product_tile.dart';
+import 'product_detail_screen.dart';
 
 class CategoryProductsScreen extends StatefulWidget {
   final String chain;
@@ -62,6 +63,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
               return ProductTile(
                 product: product,
                 onAdd: () => _addToList(product),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
+                ),
               );
             },
           );

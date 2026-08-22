@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../widgets/error_view.dart';
 import '../widgets/loading_view.dart';
 import '../widgets/product_tile.dart';
+import 'product_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -107,7 +108,14 @@ class _SearchScreenState extends State<SearchScreen> {
           itemCount: products.length,
           itemBuilder: (context, index) {
             final product = products[index];
-            return ProductTile(product: product, onAdd: () => _addToList(product));
+            return ProductTile(
+              product: product,
+              onAdd: () => _addToList(product),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)),
+              ),
+            );
           },
         );
       },

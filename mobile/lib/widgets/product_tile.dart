@@ -5,12 +5,14 @@ import '../models/product.dart';
 class ProductTile extends StatelessWidget {
   final Product product;
   final VoidCallback? onAdd;
+  final VoidCallback? onTap;
 
-  const ProductTile({super.key, required this.product, this.onAdd});
+  const ProductTile({super.key, required this.product, this.onAdd, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap: onTap,
       leading: SizedBox(
         width: 48,
         height: 48,

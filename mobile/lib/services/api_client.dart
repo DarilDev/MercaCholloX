@@ -4,8 +4,10 @@ import 'package:http/http.dart' as http;
 import '../models/category.dart';
 import '../models/favorite.dart';
 import '../models/geocode_result.dart';
+import '../models/price_history.dart';
 import '../models/product.dart';
 import '../models/profile.dart';
+import '../models/scan_result.dart';
 import '../models/store.dart';
 import '../models/worth_it.dart';
 import 'backend_config.dart';
@@ -62,6 +64,11 @@ class ApiClient {
     return data.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
   }
 
+  Future<PriceHistory> getPriceHistory(int productId) async {
+    final data = await _get('/products/$productId/price_history') as Map<String, dynamic>;
+    return PriceHistory.fromJson(data);
+  }
+
   Future<List<GeocodeResult>> geocode(String query) async {
     final data = await _get('/geocode', {'q': query}) as List<dynamic>;
     return data.map((e) => GeocodeResult.fromJson(e as Map<String, dynamic>)).toList();
@@ -115,6 +122,11 @@ class ApiClient {
   Future<List<WorthItResult>> getWorthIt() async {
     final data = await _get('/worth-it') as List<dynamic>;
     return data.map((e) => WorthItResult.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<ScanResult> scanBarcode(String ean) async {
+    final data = await _get('/products/scan/$ean') as Map<String, dynamic>;
+    return ScanResult.fromJson(data);
   }
 
   Future<List<NearbyStore>> getNearbyStores(double lat, double lon, {double radiusKm = 3}) async {
