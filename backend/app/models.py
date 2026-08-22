@@ -103,6 +103,10 @@ class Favorite(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     query: Mapped[str] = mapped_column(String)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
+    # Solo se rellena si el usuario tocó una sugerencia real al añadirlo (ver
+    # ShoppingListScreen._pickSuggestion) — nunca se adivina a partir del
+    # texto libre, si es null se muestra el icono genérico sin más.
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class ScanHistoryEntry(Base):

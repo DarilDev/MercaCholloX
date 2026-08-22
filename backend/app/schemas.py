@@ -52,6 +52,7 @@ class ScanResultOut(BaseModel):
 class FavoriteIn(BaseModel):
     query: str
     quantity: int = 1
+    image_url: str | None = None
 
 
 class FavoriteOut(BaseModel):
@@ -60,6 +61,7 @@ class FavoriteOut(BaseModel):
     id: int
     query: str
     quantity: int
+    image_url: str | None
 
 
 class MatchedItemOut(BaseModel):

@@ -24,7 +24,12 @@ def list_favorites(user: CurrentUser, db: Session = Depends(get_db)):
 
 @router.post("", response_model=FavoriteOut)
 def add_favorite(payload: FavoriteIn, user: CurrentUser, db: Session = Depends(get_db)):
-    favorite = Favorite(user_id=user.id, query=payload.query.strip(), quantity=payload.quantity)
+    favorite = Favorite(
+        user_id=user.id,
+        query=payload.query.strip(),
+        quantity=payload.quantity,
+        image_url=payload.image_url,
+    )
     db.add(favorite)
     db.commit()
     db.refresh(favorite)
