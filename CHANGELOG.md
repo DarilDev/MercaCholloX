@@ -4,8 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). E
 
 ## [Sin publicar]
 
-### En curso
-- Próxima cadena tras Dia: HiperDino (Magento, prometedor) y Alcampo (bloqueado por AWS WAF/CAPTCHA) investigados en directo pero sin construir todavía — hace falta una sesión dedicada a inspeccionar peticiones reales, no adivinar más endpoints.
+### Añadido — 2026-08-22 (continuación)
+- **Fase 6: HiperDino integrado**, tercera cadena. Investigación en directo (agente `researcher`) confirmó que hiperdino.es (Magento) no tiene protección anti-bot: `POST /graphql` responde sin auth y sin rate-limit tras varias búsquedas seguidas. `hiperdino_client.py` sigue el mismo patrón que Dia (catálogo poblado por términos de búsqueda, no por árbol de categorías), pero cada producto trae su propia jerarquía de categorías reales — el pasillo sale gratis, a diferencia de Dia. Verificado extremo a extremo en local: 251 productos reales con nombre/precio/imagen/pasillo. Workflow de GitHub Actions manual (`refresh_hiperdino_prices.yml`), igual que se hizo con Dia hasta confirmar estabilidad. `chain_aliases.py` ampliado: el grupo Dinosol usa "HiperDino" y "SuperDino" para la misma cadena en OpenStreetMap.
+- **Alcampo descartado** (ver docs/DATA_SOURCES.md): AWS WAF confirmado en directo — dejaba pasar 1 petición aislada pero bloqueaba con 403 a partir de la 2ª/3ª seguida, incluso con delays. No vale la pena sin infraestructura anti-detección seria.
 
 ### Añadido — 2026-08-22
 - **Historial de precios**: la tabla `prices` (append-only desde el diseño inicial) se usa por fin de verdad — ficha de producto nueva con gráfico (`fl_chart`) y una etiqueta que distingue una bajada real de "el mismo precio de siempre" (compara contra la media de 30 días). Verificado en el móvil real con datos reales.

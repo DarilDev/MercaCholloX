@@ -1,0 +1,39 @@
+name: Refrescar precios de HiperDino
+
+# Aislado del refresco de las demás cadenas y de la API en sí — cada fuente
+# tiene su propia fragilidad y no deben poder tumbarse entre sí (ver
+# docs/DECISIONS.md, "Arquitectura para escalar").
+#
+# Sin disparador `schedule` todavía, a propósito: aunque hiperdino.es no
+# mostró ninguna protección anti-bot en la investigación inicial (a
+# diferencia de Dia/Akamai o Alcampo/AWS WAF), conviene revisarlo funcionando
+# unas cuantas veces a mano ("Run workflow" en Actions) antes de dejarlo
+# desatendido a diario.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Aplicar migraciones
+        working-directory: backend
+        env:
+          MERCACHOLLO_DATABASE_URL: ${{ secrets.MERCACHOLLO_DATABASE_URL }}
+        run: alembic upgrade head
+
+      - name: Refrescar catálogo de HiperDino
+        working-directory: backend
+        env:
+          MERCACHOLLO_DATABASE_URL: ${{ secrets.MERCACHOLLO_DATABASE_URL }}
+        run: python -m app.workers.refresh_hiperdino_prices

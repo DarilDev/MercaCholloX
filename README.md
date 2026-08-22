@@ -10,9 +10,9 @@ Apps como Soysuper, OCU o FindItApp comparan cestas de compra para pedir *online
 
 Beta privada en desarrollo (familia/amigos, sin publicar en Play Store). Ver [CHANGELOG.md](CHANGELOG.md) para el detalle de qué hay construido y [docs/DECISIONS.md](docs/DECISIONS.md) para el porqué de cada decisión de arquitectura.
 
-- **Backend**: pipeline real de precios de Mercadona (categorías, productos, imágenes), navegación tipo supermercado por pasillos, búsqueda, y una lista de la compra que compara el total entre las cadenas cacheadas.
+- **Backend**: pipeline real de precios de Mercadona, Dia e HiperDino (categorías, productos, imágenes), navegación tipo supermercado por pasillos, búsqueda, lista de la compra que compara el total entre cadenas, motor "vale la pena el desvío" (gasolina real + coste de tiempo), historial de precios y escáner de código de barras (Nutri-Score/NOVA).
 - **App**: Android nativo (Flutter), instalada y probada en dispositivo real vía ADB inalámbrico.
-- **Próxima cadena**: Dia (confirmado que necesita scraping con navegador real, no una API limpia como la de Mercadona — ver [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)).
+- **Próxima cadena**: sin decidir — Alcampo descartado (AWS WAF), Aldi/Consum/Eroski sin evaluar en profundidad (ver [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)).
 
 ## Estructura
 

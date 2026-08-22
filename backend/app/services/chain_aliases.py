@@ -6,6 +6,11 @@ encontraría la tienda física candidata de una cadena con datos de precio.
 
 Al añadir una cadena nueva a `category_mapping.py`, revisar también aquí qué
 variantes usa OSM para su nombre real (mismo tipo de trabajo manual).
+
+**HiperDino** (verificado en directo cerca de Las Palmas de Gran Canaria):
+el mismo grupo (Dinosol) opera dos formatos de tienda física, "HiperDino" y
+"SuperDino" — mismo catálogo/precios online en hiperdino.es, así que ambos
+mapean a la cadena "hiperdino".
 """
 
 _ALIASES: dict[str, str] = {
@@ -15,6 +20,8 @@ _ALIASES: dict[str, str] = {
     "maxi dia": "dia",
     "la plaza de dia": "dia",
     "supermercados dia": "dia",
+    "hiperdino": "hiperdino",
+    "superdino": "hiperdino",
 }
 
 
