@@ -44,6 +44,7 @@ class _ScanScreenState extends State<ScanScreen> {
       final result = await _apiClient.scanBarcode(ean);
       if (!mounted) return;
       final addName = result.matchedProduct?.name ?? result.name;
+      final addImageUrl = result.matchedProduct?.imageUrl ?? result.imageUrl;
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -53,7 +54,7 @@ class _ScanScreenState extends State<ScanScreen> {
               ? null
               : () {
                   Navigator.pop(context);
-                  addToShoppingList(context, _apiClient, addName);
+                  addToShoppingList(context, _apiClient, addName, imageUrl: addImageUrl);
                 },
         ),
       );

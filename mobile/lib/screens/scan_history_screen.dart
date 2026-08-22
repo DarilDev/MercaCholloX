@@ -69,7 +69,12 @@ class _ScanHistoryScreenState extends State<ScanHistoryScreen> {
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.add_shopping_cart),
-                        onPressed: () => addToShoppingList(context, _apiClient, entry.name!),
+                        onPressed: () => addToShoppingList(
+                          context,
+                          _apiClient,
+                          entry.name!,
+                          imageUrl: entry.imageUrl,
+                        ),
                       ),
               );
             },

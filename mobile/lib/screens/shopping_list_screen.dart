@@ -24,6 +24,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   final _controller = TextEditingController();
   Timer? _suggestDebounce;
   List<Product> _suggestions = [];
+  String? _pickedImageUrl;
   Future<List<Favorite>>? _favorites;
   UserProfile? _profile;
   ShoppingComparison? _comparison;
@@ -61,6 +62,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   // el campo, no lo añade directamente, para no perder el matching entre
   // cadenas ya construido en shopping_list.py.
   void _onQueryChanged(String text) {
+    // Cualquier cambio de texto invalida la sugerencia elegida antes — la
+    // imagen guardada debe ser exactamente la del producto que se picó, no
+    // la de una sugerencia antigua que ya no coincide con lo escrito.
+    _pickedImageUrl = null;
     _suggestDebounce?.cancel();
     if (text.trim().length < 2) {
       setState(() => _suggestions = []);
@@ -80,15 +85,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   void _pickSuggestion(Product product) {
     _suggestDebounce?.cancel();
     _controller.text = product.name;
+    _pickedImageUrl = product.imageUrl;
     setState(() => _suggestions = []);
   }
 
   Future<void> _add() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+    final imageUrl = _pickedImageUrl;
     _controller.clear();
+    _pickedImageUrl = null;
     setState(() => _suggestions = []);
-    await _apiClient.addFavorite(text);
+    await _apiClient.addFavorite(text, imageUrl: imageUrl);
     _reload();
   }
 
@@ -229,6 +237,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           itemBuilder: (context, index) {
             final fav = favorites[index];
             return ListTile(
+              leading: SizedBox(
+                width: 40,
+                height: 40,
+                child: fav.imageUrl != null
+                    ? Image.network(
+                        fav.imageUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stack) =>
+                            const Icon(Icons.shopping_basket_outlined),
+                      )
+                    : const Icon(Icons.shopping_basket_outlined),
+              ),
               title: Text(fav.query),
               subtitle: Text('Cantidad: ${fav.quantity}'),
               trailing: IconButton(

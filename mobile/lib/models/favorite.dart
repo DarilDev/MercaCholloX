@@ -4,14 +4,16 @@ class Favorite {
   final int id;
   final String query;
   final int quantity;
+  final String? imageUrl;
 
-  Favorite({required this.id, required this.query, required this.quantity});
+  Favorite({required this.id, required this.query, required this.quantity, required this.imageUrl});
 
   factory Favorite.fromJson(Map<String, dynamic> json) {
     return Favorite(
       id: json['id'] as int,
       query: json['query'] as String,
       quantity: json['quantity'] as int,
+      imageUrl: json['image_url'] as String?,
     );
   }
 }

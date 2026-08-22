@@ -80,11 +80,11 @@ class ApiClient {
     return data.map((e) => Favorite.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<void> addFavorite(String query, {int quantity = 1}) async {
+  Future<void> addFavorite(String query, {int quantity = 1, String? imageUrl}) async {
     final response = await http.post(
       await _uri('/favorites'),
       headers: await _headers({'Content-Type': 'application/json'}),
-      body: jsonEncode({'query': query, 'quantity': quantity}),
+      body: jsonEncode({'query': query, 'quantity': quantity, 'image_url': imageUrl}),
     );
     if (response.statusCode != 200) {
       throw Exception('Error añadiendo a la lista: ${response.statusCode}');
