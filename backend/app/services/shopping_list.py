@@ -12,11 +12,7 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.models import Favorite, Product
-
-_STOPWORDS = {
-    "de", "del", "la", "el", "los", "las", "y", "en", "con", "sin", "para",
-    "un", "una", "unos", "unas", "al", "a", "o",
-}
+from app.services.text_matching import significant_words
 
 
 @dataclass
@@ -49,7 +45,7 @@ class ChainTotal:
 
 
 def _cheapest_match(db: Session, chain: str, query: str) -> tuple[Product, float] | None:
-    words = [w for w in query.strip().lower().split() if w and w not in _STOPWORDS]
+    words = significant_words(query)
     if not words:
         return None
 

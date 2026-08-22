@@ -7,6 +7,7 @@ from app.models import Product
 from app.schemas import CategoryOut, PriceHistoryOut, PricePointOut, ProductOut
 from app.services import price_history
 from app.services.shopping_list import known_chains
+from app.services.text_matching import significant_words
 
 router = APIRouter(tags=["products"])
 
@@ -26,20 +27,22 @@ def _to_product_out(product: Product) -> ProductOut:
 
 
 def _best_match(db: Session, name: str) -> Product | None:
-    """Empareja un nombre externo (ej. de OpenFoodFacts, con marca y gramaje
-    que no siempre coinciden con cómo lo nombra cada cadena) contra la caché
-    local — mismo criterio de relevancia que /products/search (menos palabras
-    de más gana). Puede no encontrar nada: OpenFoodFacts cubre muchísimos más
-    productos que las cadenas cacheadas aquí, eso es lo esperado."""
-    words = name.strip().lower().split()
-    if not words:
+    """Empareja un nombre externo (ej. de OpenFoodFacts) contra la caché
+    local. Antes anclaba solo en la primera palabra del nombre — con
+    productos de cadenas que no tenemos integradas (ej. Lidl) eso enganchaba
+    cualquier producto de otra cadena que compartiera esa única palabra (ej.
+    "leche" pillaba una leche de Mercadona sin relación real, confundiendo al
+    usuario con un precio que no es el del producto escaneado). Ahora exige
+    TODAS las palabras significativas del nombre (como el matching de
+    favoritos en shopping_list.py) y al menos 2, para no anclar en una sola
+    palabra genérica — devolver None es preferible a adivinar mal."""
+    words = significant_words(name)
+    if len(words) < 2:
         return None
-    candidates = (
-        db.query(Product)
-        .filter(Product.current_price.isnot(None), Product.name.ilike(f"%{words[0]}%"))
-        .limit(200)
-        .all()
-    )
+    query = db.query(Product).filter(Product.current_price.isnot(None))
+    for word in words:
+        query = query.filter(Product.name.ilike(f"%{word}%"))
+    candidates = query.limit(200).all()
     if not candidates:
         return None
     candidates.sort(key=lambda p: len(p.name.lower().split()))
