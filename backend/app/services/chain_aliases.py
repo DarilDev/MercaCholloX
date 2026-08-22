@@ -22,6 +22,7 @@ _ALIASES: dict[str, str] = {
     "supermercados dia": "dia",
     "hiperdino": "hiperdino",
     "superdino": "hiperdino",
+    "aldi": "aldi",
 }
 
 
