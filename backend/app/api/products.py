@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import Product
-from app.schemas import CategoryOut, ProductOut
+from app.schemas import CategoryOut, PriceHistoryOut, PricePointOut, ProductOut
+from app.services import price_history
 from app.services.shopping_list import known_chains
 
 router = APIRouter(tags=["products"])
@@ -68,6 +69,22 @@ def list_products(chain: str, category: str, db: Session = Depends(get_db)):
         .all()
     )
     return [_to_product_out(p) for p in products]
+
+
+@router.get("/products/{product_id}/price_history", response_model=PriceHistoryOut)
+def product_price_history(product_id: int, db: Session = Depends(get_db)):
+    """Historial completo de precios de un producto (tabla `prices`,
+    append-only desde el principio) + una etiqueta que distingue una
+    bajada real de "el mismo precio de siempre" — inspirado en cómo la
+    comunidad de Chollometro compara contra el histórico a mano."""
+    history = price_history.get_history(db, product_id)
+    return PriceHistoryOut(
+        points=[
+            PricePointOut(price=p.price, captured_at=p.captured_at.isoformat())
+            for p in history
+        ],
+        discount_label=price_history.discount_label(history),
+    )
 
 
 @router.get("/products/search", response_model=list[ProductOut])

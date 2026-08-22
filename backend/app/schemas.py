@@ -20,6 +20,16 @@ class CategoryOut(BaseModel):
     count: int  # nº de productos cacheados de esta cadena en este pasillo
 
 
+class PricePointOut(BaseModel):
+    price: float
+    captured_at: str
+
+
+class PriceHistoryOut(BaseModel):
+    points: list[PricePointOut]
+    discount_label: str | None
+
+
 class FavoriteIn(BaseModel):
     query: str
     quantity: int = 1
