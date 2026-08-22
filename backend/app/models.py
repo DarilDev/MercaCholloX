@@ -105,6 +105,22 @@ class Favorite(Base):
     quantity: Mapped[int] = mapped_column(Integer, default=1)
 
 
+class ScanHistoryEntry(Base):
+    """Registro de cada escaneo con datos reales de OpenFoodFacts — para
+    poder añadirlo a la lista más tarde sin volver a escanear (ver Favorite
+    para la lista de la compra en sí; esto es solo el historial)."""
+
+    __tablename__ = "scan_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    ean: Mapped[str] = mapped_column(String)
+    name: Mapped[str | None] = mapped_column(String, nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    nutriscore_grade: Mapped[str | None] = mapped_column(String, nullable=True)
+    scanned_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+
 class UserProfile(Base):
     """Una fila por usuario (antes era una fila única id=1 para toda la beta)."""
 

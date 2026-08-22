@@ -30,6 +30,15 @@ class PriceHistoryOut(BaseModel):
     discount_label: str | None
 
 
+class ScanHistoryEntryOut(BaseModel):
+    id: int
+    ean: str
+    name: str | None
+    image_url: str | None
+    nutriscore_grade: str | None
+    scanned_at: str
+
+
 class ScanResultOut(BaseModel):
     ean: str
     name: str | None
