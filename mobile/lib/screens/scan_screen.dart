@@ -4,9 +4,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../models/scan_result.dart';
 import '../services/api_client.dart';
 import '../theme.dart';
+import '../utils/add_to_list.dart';
 import '../widgets/error_view.dart';
 import '../widgets/product_tile.dart';
 import 'product_detail_screen.dart';
+import 'scan_history_screen.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -40,10 +42,19 @@ class _ScanScreenState extends State<ScanScreen> {
     try {
       final result = await _apiClient.scanBarcode(ean);
       if (!mounted) return;
+      final addName = result.matchedProduct?.name ?? result.name;
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        builder: (_) => _ScanResultSheet(result: result),
+        builder: (_) => _ScanResultSheet(
+          result: result,
+          onAdd: addName == null
+              ? null
+              : () {
+                  Navigator.pop(context);
+                  addToShoppingList(context, _apiClient, addName);
+                },
+        ),
       );
     } catch (e) {
       if (!mounted) return;
@@ -59,7 +70,18 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Escanear')),
+      appBar: AppBar(
+        title: const Text('Escanear'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ScanHistoryScreen()),
+            ),
+          ),
+        ],
+      ),
       body: MobileScanner(
         controller: _controller,
         onDetect: _onDetect,
@@ -81,8 +103,9 @@ class _ScanScreenState extends State<ScanScreen> {
 
 class _ScanResultSheet extends StatelessWidget {
   final ScanResult result;
+  final VoidCallback? onAdd;
 
-  const _ScanResultSheet({required this.result});
+  const _ScanResultSheet({required this.result, required this.onAdd});
 
   Color _gradeColor(String? grade) {
     switch (grade) {
@@ -177,6 +200,17 @@ class _ScanResultSheet extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+            ],
+            if (onAdd != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: const Text('Añadir a mi lista'),
+                ),
               ),
             ],
           ],

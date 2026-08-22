@@ -7,6 +7,7 @@ import '../models/geocode_result.dart';
 import '../models/price_history.dart';
 import '../models/product.dart';
 import '../models/profile.dart';
+import '../models/scan_history_entry.dart';
 import '../models/scan_result.dart';
 import '../models/store.dart';
 import '../models/worth_it.dart';
@@ -127,6 +128,11 @@ class ApiClient {
   Future<ScanResult> scanBarcode(String ean) async {
     final data = await _get('/products/scan/$ean') as Map<String, dynamic>;
     return ScanResult.fromJson(data);
+  }
+
+  Future<List<ScanHistoryEntry>> getScanHistory() async {
+    final data = await _get('/products/scan/history') as List<dynamic>;
+    return data.map((e) => ScanHistoryEntry.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<List<NearbyStore>> getNearbyStores(double lat, double lon, {double radiusKm = 3}) async {
