@@ -13,6 +13,17 @@ class CategoriesScreen extends StatefulWidget {
   State<CategoriesScreen> createState() => _CategoriesScreenState();
 }
 
+// Dominio real de cada cadena, para pedir su icono de marca (favicon) —
+// ver Image.network más abajo. Una cadena nueva sin dominio aquí simplemente
+// cae al icono genérico, no rompe nada.
+const _chainDomains = {
+  'mercadona': 'mercadona.es',
+  'dia': 'dia.es',
+  'hiperdino': 'hiperdino.es',
+  'aldi': 'aldi.es',
+  'lidl': 'lidl.es',
+};
+
 class _CategoriesScreenState extends State<CategoriesScreen> {
   final _apiClient = ApiClient();
   late Future<List<String>> _chains;
@@ -31,7 +42,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pasillos'),
+        title: const Text('Supermercados'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -59,8 +70,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             itemCount: chains.length,
             itemBuilder: (context, index) {
               final chain = chains[index];
+              final domain = _chainDomains[chain];
               return ListTile(
-                leading: const Icon(Icons.storefront_outlined),
+                leading: domain == null
+                    ? const Icon(Icons.storefront_outlined)
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Image.network(
+                          'https://www.google.com/s2/favicons?domain=$domain&sz=64',
+                          width: 32,
+                          height: 32,
+                          errorBuilder: (context, error, stack) =>
+                              const Icon(Icons.storefront_outlined),
+                        ),
+                      ),
                 title: Text(_capitalize(chain)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.push(

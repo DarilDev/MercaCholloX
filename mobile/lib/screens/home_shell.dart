@@ -14,7 +14,9 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
+  // Mi lista es la pantalla de inicio (posición 2 en _screens) — el resto
+  // del orden de pestañas no cambia.
+  int _index = 2;
 
   static const _screens = [
     CategoriesScreen(),
@@ -43,7 +45,7 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: _index,
         onDestinationSelected: _onDestinationSelected,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Pasillos'),
+          NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Supermercados'),
           NavigationDestination(icon: Icon(Icons.search), label: 'Buscar'),
           NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), label: 'Mi lista'),
           NavigationDestination(icon: Icon(Icons.place_outlined), label: 'Ubicación'),
