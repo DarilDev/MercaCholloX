@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/worth_it.dart';
 import '../theme.dart';
@@ -58,6 +59,17 @@ class WorthItCard extends StatelessWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => _openDirections(result.storeLat, result.storeLon),
+                icon: const Icon(Icons.directions),
+                label: const Text('Cómo llegar'),
+              ),
+            ),
+          ),
           ExpansionTile(
             title: const Text('Ver desglose'),
             childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -83,6 +95,13 @@ class WorthItCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // URL universal de Google Maps: abre la app si está instalada, si no el
+  // navegador — no hace falta API key ni distinguir Android/iOS.
+  Future<void> _openDirections(double lat, double lon) async {
+    final uri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lon');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   String _headline() {

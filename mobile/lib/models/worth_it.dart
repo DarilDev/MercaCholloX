@@ -8,6 +8,8 @@ class WorthItResult {
   final double basketSavingsEur;
   final double netSavingsEur;
   final bool worthIt;
+  final double storeLat;
+  final double storeLon;
 
   WorthItResult({
     required this.chain,
@@ -19,6 +21,8 @@ class WorthItResult {
     required this.basketSavingsEur,
     required this.netSavingsEur,
     required this.worthIt,
+    required this.storeLat,
+    required this.storeLon,
   });
 
   factory WorthItResult.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class WorthItResult {
       basketSavingsEur: (json['basket_savings_eur'] as num).toDouble(),
       netSavingsEur: (json['net_savings_eur'] as num).toDouble(),
       worthIt: json['worth_it'] as bool,
+      storeLat: (json['store_lat'] as num).toDouble(),
+      storeLon: (json['store_lon'] as num).toDouble(),
     );
   }
 }

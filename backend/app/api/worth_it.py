@@ -159,7 +159,15 @@ def worth_it(user: CurrentUser, db: Session = Depends(get_db)):
             home_to_work_min=home_to_work.duration_min if home_to_work else None,
             threshold_eur=settings.worth_it_threshold_eur,
         )
-        results.append(WorthItOut(chain=chain, usual_chain=usual_chain, **verdict.__dict__))
+        results.append(
+            WorthItOut(
+                chain=chain,
+                usual_chain=usual_chain,
+                store_lat=cand_lat,
+                store_lon=cand_lon,
+                **verdict.__dict__,
+            )
+        )
 
     results.sort(key=lambda r: r.net_savings_eur, reverse=True)
     return results

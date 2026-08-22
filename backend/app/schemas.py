@@ -135,3 +135,5 @@ class WorthItOut(BaseModel):
     basket_savings_eur: float
     net_savings_eur: float
     worth_it: bool
+    store_lat: float
+    store_lon: float
