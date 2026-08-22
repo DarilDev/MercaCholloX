@@ -42,6 +42,10 @@ class Settings(BaseSettings):
         "https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes"
         "/PreciosCarburantes/EstacionesTerrestres/"
     )
+    # Verificado en directo: el lookup por EAN individual es fiable incluso
+    # cuando la búsqueda general de OpenFoodFacts está degradada — el escáner
+    # solo necesita esto, nunca busca por texto.
+    openfoodfacts_url: str = "https://world.openfoodfacts.org/api/v2/product"
 
     default_vehicle_consumption_l_per_100km: float = 6.5
     default_fuel_type: str = "gasoleo_a"  # coincide con las categorías del MITECO

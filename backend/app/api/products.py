@@ -25,6 +25,27 @@ def _to_product_out(product: Product) -> ProductOut:
     )
 
 
+def _best_match(db: Session, name: str) -> Product | None:
+    """Empareja un nombre externo (ej. de OpenFoodFacts, con marca y gramaje
+    que no siempre coinciden con cómo lo nombra cada cadena) contra la caché
+    local — mismo criterio de relevancia que /products/search (menos palabras
+    de más gana). Puede no encontrar nada: OpenFoodFacts cubre muchísimos más
+    productos que las cadenas cacheadas aquí, eso es lo esperado."""
+    words = name.strip().lower().split()
+    if not words:
+        return None
+    candidates = (
+        db.query(Product)
+        .filter(Product.current_price.isnot(None), Product.name.ilike(f"%{words[0]}%"))
+        .limit(200)
+        .all()
+    )
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: len(p.name.lower().split()))
+    return candidates[0]
+
+
 @router.get("/chains", response_model=list[str])
 def list_chains(db: Session = Depends(get_db)):
     """Cadenas con datos cacheados."""

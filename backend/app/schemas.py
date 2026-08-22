@@ -30,6 +30,16 @@ class PriceHistoryOut(BaseModel):
     discount_label: str | None
 
 
+class ScanResultOut(BaseModel):
+    ean: str
+    name: str | None
+    image_url: str | None
+    nutriscore_grade: str | None
+    nova_group: int | None
+    additives_count: int
+    matched_product: ProductOut | None
+
+
 class FavoriteIn(BaseModel):
     query: str
     quantity: int = 1
