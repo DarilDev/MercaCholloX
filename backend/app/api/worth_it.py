@@ -84,7 +84,19 @@ def worth_it(user: CurrentUser, db: Session = Depends(get_db)):
     chain_totals = {ct.chain: ct for ct in shopping_list.compare_favorites(db, user_id=user.id)}
     complete_chains = {c: ct for c, ct in chain_totals.items() if not ct.missing}
     if not complete_chains:
-        raise HTTPException(status_code=400, detail="Sin datos de precio suficientes para comparar")
+        # Ninguna cadena tiene la lista completa — casi siempre porque un
+        # artículo (ej. un producto escaneado con nombre en inglés/de OpenFoodFacts)
+        # no encaja en ninguna. Decir cuál en vez de un "sin datos" genérico:
+        # el usuario puede entonces quitarlo o editarlo para poder comparar.
+        blocking = set.intersection(*(set(ct.missing) for ct in chain_totals.values())) if chain_totals else set()
+        if blocking:
+            detail = (
+                "Ningún súper tiene toda tu lista — no se encontró: "
+                + ", ".join(sorted(blocking))
+            )
+        else:
+            detail = "Sin datos de precio suficientes para comparar"
+        raise HTTPException(status_code=400, detail=detail)
 
     usual_chain = None
     if profile.usual_store_id:
